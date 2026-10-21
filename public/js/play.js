@@ -3,7 +3,7 @@
   const { CHARACTERS, STAT_LABELS, byId } = window.GameData;
   const $ = s => document.querySelector(s);
   const TYPE_LABEL = { atk: '攻擊', multi: '連擊', heal: '回復', drain: '吸血', dot: '持續', buff: '增益', debuff: '減益' };
-  const STAT_MAX = { hp: 1100, wu: 80, spi: 80, spd: 80, luck: 80, def: 80 };
+  const STAT_MAX = { hp: 1100, spi: 80, spd: 80, luck: 80, def: 80 };
 
   // ---------- 狀態 ----------
   const S = {
@@ -307,7 +307,6 @@
 
   socket.on('state', st => { if (S.battle) renderState(st); });
 
-  socket.on('normal', ev => scene.onNormal(ev));
   socket.on('skill', ev => {
     scene.onSkill(ev);
     board.playRemoval(ev.pathIds, ev.board, ev.slot);
@@ -432,21 +431,6 @@
   mic.addEventListener('pointerup', micUp);
   mic.addEventListener('pointercancel', micUp);
   mic.addEventListener('contextmenu', e => e.preventDefault());
-
-  // 普攻
-  let atkReadyAt = 0;
-  $('#atkBtn').addEventListener('pointerdown', e => {
-    e.preventDefault();
-    if (!S.battle || !S.started) return;
-    const now = Date.now();
-    if (now < atkReadyAt) return;
-    atkReadyAt = now + S.battle.normalCd;
-    socket.emit('attack');
-    const cd = $('#atkCd');
-    cd.style.transition = 'none'; cd.style.width = '100%';
-    void cd.offsetWidth;
-    cd.style.transition = `width ${S.battle.normalCd}ms linear`; cd.style.width = '0%';
-  });
 
   // ---------- 招式表 ----------
   function renderMoves() {

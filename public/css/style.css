@@ -165,9 +165,9 @@ button { font-family: inherit; }
 .cd-tip { margin: 0; font-size: 16px; color: var(--text); font-family: var(--sans); }
 #boardCover .btn { font-size: 17px; }
 .cell.drop { transition: transform .5s cubic-bezier(.3, 0, .45, 1.2); }
-#controls.locked .ctrl:not(#movesBtn) { opacity: .45; }
+#controls.locked .mic { opacity: .45; }
 
-#controls { flex: none; display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 10px; padding: 8px 12px; padding-bottom: max(10px, env(safe-area-inset-bottom)); background: #1a1126; border-top: 1px solid #3a2a52; }
+#controls { flex: none; display: grid; grid-template-columns: 1fr 2.2fr; gap: 10px; padding: 8px 12px; padding-bottom: max(10px, env(safe-area-inset-bottom)); background: #1a1126; border-top: 1px solid #3a2a52; }
 .ctrl {
   position: relative; height: 64px; border: 0; border-radius: 16px; color: var(--text); overflow: hidden;
   background: linear-gradient(#3f2c58, #2a1d3c); box-shadow: 0 3px 0 #120b1a, inset 0 1px 0 rgba(255, 255, 255, .15);
@@ -176,7 +176,6 @@ button { font-family: inherit; }
 .ctrl b { font-size: 24px; line-height: 1; position: relative; z-index: 1; }
 .ctrl small { font-size: 12px; font-weight: 700; position: relative; z-index: 1; }
 .ctrl:active { transform: translateY(2px); box-shadow: 0 1px 0 #120b1a; }
-#atkCd { position: absolute; left: 0; bottom: 0; height: 100%; width: 0; background: rgba(0, 0, 0, .45); }
 .mic { background: linear-gradient(#5a3f80, #3a2858); }
 .mic.full { background: linear-gradient(#ffe08a, #f2a51a); color: #3a1d00; box-shadow: 0 3px 0 #7a4e0f, 0 0 18px rgba(255, 200, 70, .7); animation: pulse 1s ease-in-out infinite; }
 .mic.listening { background: linear-gradient(#7fd3ff, #2f7fd0); color: #001a33; animation: none; box-shadow: 0 0 0 4px rgba(127, 211, 255, .35), 0 0 22px rgba(127, 211, 255, .8); }
@@ -203,7 +202,7 @@ button { font-family: inherit; }
 .moves-list .st { align-self: center; font-size: 13px; color: var(--muted); }
 .moves-list li.on .st { color: #6dffa0; font-weight: 900; }
 .moves-list .ds { grid-column: 1 / -1; font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
-.stats-box { margin-top: 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.stats-box { margin-top: 12px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .stats-box div { text-align: center; background: rgba(255, 255, 255, .05); border-radius: 8px; padding: 6px 0; font-size: 12px; color: var(--muted); }
 .stats-box b { display: block; font-size: 17px; color: var(--gold); }
 .extra { margin-top: 12px; font-size: 13px; color: var(--muted); }

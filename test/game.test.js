@@ -50,25 +50,31 @@ test('出招會消除方塊並在命中時刻造成傷害', () => {
   assert.ok(game.fighters[1].hp < hp);
 });
 
-test('普攻有冷卻、重置每場只有一次', () => {
+test('重置每場只有一次，重置後仍保證有招式', () => {
   const { game } = setup();
-  assert.ok(game.normalAttack(0).ok);
-  assert.strictEqual(game.normalAttack(0).reason, 'cooldown');
-  game.update(C.NORMAL_CD);
-  assert.ok(game.normalAttack(0).ok);
   assert.ok(game.reset(1).ok);
   assert.strictEqual(game.reset(1).reason, 'noreset');
   assert.ok(game.avail[0].length >= 2 && game.avail[1].length >= 2);
 });
 
+test('沒有普攻，只能靠招式造成傷害', () => {
+  const { game } = setup();
+  assert.strictEqual(game.normalAttack, undefined);
+  game.update(60000);
+  assert.strictEqual(game.fighters[1].hp, game.fighters[1].maxHp, '只集氣不出招不會扣血');
+});
+
 test('氣血歸零即結束，之後不能再行動', () => {
   const { game, events } = setup();
   game.fighters[1].hp = 1;
-  game.normalAttack(0);
-  // 可能被閃避，多打幾次
-  for (let t = 0; t < 30000 && !game.over; t += 100) { game.update(t); game.normalAttack(0); }
+  for (let t = 0; t < 120000 && !game.over; t += 100) {
+    game.update(t);
+    const atk = game.avail[0].find(n => ['atk', 'multi', 'drain', 'dot', 'debuff'].includes(game.fighters[0].ch.moves.find(m => m.name === n).type));
+    if (atk) game.castSkill(0, atk);
+  }
   assert.ok(game.over);
   assert.strictEqual(game.winner, 0);
   assert.ok(events.some(e => e[0] === 'ko'));
-  assert.strictEqual(game.normalAttack(1).reason, 'over');
+  game.fighters[1].gauge = 100;
+  assert.strictEqual(game.castSkill(1, game.fighters[1].ch.moves[0].name).reason, 'over');
 });

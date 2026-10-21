@@ -16,7 +16,6 @@ const REASONS = {
   notonboard: '盤面上找不到這個招式',
   badpath: '方塊路徑不正確',
   noreset: '重置機會已用完',
-  cooldown: '普攻冷卻中',
   nomatch: '沒有聽到你的招式',
   notbattle: '尚未開戰'
 };
@@ -161,7 +160,6 @@ class Room {
       countdownEnd: this.countdownEnd,
       serverNow: Date.now(),
       gaugeMax: C.GAUGE_MAX,
-      normalCd: C.NORMAL_CD,
       state: this.publicState()
     };
   }
@@ -178,7 +176,7 @@ class Room {
       this.phase = 'battle';
       this.game.update(now);
       // 倒數期間不集氣：從開戰時刻起算
-      this.game.fighters.forEach(f => { f.gauge = 0; f.nextNormalAt = now; });
+      this.game.fighters.forEach(f => { f.gauge = 0; });
       this.broadcastRoom();
       this.emit('begin', { board: this.game.board.snapshot(), state: this.game.state() });
     }
@@ -202,13 +200,6 @@ class Room {
 
   inBattle(slot) {
     return this.phase === 'battle' && this.game && !this.game.over && this.players[slot];
-  }
-
-  normal(socket) {
-    const slot = socket.data.slot;
-    if (!this.inBattle(slot)) return;
-    this.game.update(Date.now());
-    this.game.normalAttack(slot);
   }
 
   // 語音：alts 為辨識引擎給的候選句子

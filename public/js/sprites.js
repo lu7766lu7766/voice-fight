@@ -2,7 +2,6 @@
 // 座標：原點在腳底中心、面向右方，人物總高約 130 單位。
 (function () {
   const TAU = Math.PI * 2;
-  const MELEE = { sword: true, whip: true, talisman: true };
 
   // ---------- 小工具 ----------
   function ell(ctx, x, y, rx, ry, rot = 0) {
@@ -57,25 +56,6 @@
     const t = Math.max(0, now - anim.start) / anim.dur;
     const tc = Math.min(1, t);
     switch (anim.name) {
-      case 'normal': {
-        const melee = MELEE[look.weapon];
-        if (melee) {
-          p.dash = tc < 0.45 ? seg(tc, 0, 0.4) : 1 - seg(tc, 0.62, 1);
-          const wind = seg(tc, 0, 0.32), strike = seg(tc, 0.32, 0.52), back = seg(tc, 0.7, 1);
-          p.armF = lerp(lerp(lerp(p.armF, 2.2, wind), 0.35, strike), readyPose(look).armF, back);
-          p.lean = lerp(0.04, 0.28, strike) * (1 - back);
-          p.mouth = 'open';
-          p.whip = look.weapon === 'whip' ? Math.sin(Math.PI * seg(tc, 0.3, 0.75)) : 0;
-          p.legF = lerp(0.22, 0.55, p.dash); p.legB = lerp(-0.2, -0.5, p.dash);
-        } else {
-          const pull = seg(tc, 0, 0.35), rel = seg(tc, 0.35, 0.5), back = seg(tc, 0.6, 1);
-          if (look.weapon === 'bow') { p.bow = pull * (1 - rel); p.armB = lerp(1.1, 1.45, pull); }
-          else { p.armF = lerp(lerp(p.armF, 2.4, pull), 1.6, rel); p.armF = lerp(p.armF, readyPose(look).armF, back); }
-          p.lean = 0.12 * rel * (1 - back);
-          p.x = -3 * pull * (1 - rel);
-        }
-        break;
-      }
       case 'cast': {
         const up = seg(tc, 0, 0.42), rel = seg(tc, 0.42, 0.62), back = seg(tc, 0.75, 1);
         p.glow = Math.sin(Math.PI * Math.min(1, tc * 1.25)) ;
@@ -674,5 +654,5 @@
     drawFighter(ctx, look, poseFor(look, anim, now), w / 2 - 4 * scale, h - 8 * scale, scale, 1, now);
   }
 
-  window.Sprites = { drawFighter, poseFor, drawPortrait, isMelee: w => !!MELEE[w], hexA, shade };
+  window.Sprites = { drawFighter, poseFor, drawPortrait, hexA, shade };
 })();

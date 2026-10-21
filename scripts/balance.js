@@ -8,15 +8,11 @@ const { CHARACTERS } = require('../public/shared/characters');
 const N = Number(process.argv[2]) || 400;
 const DT = 50;
 
-// 模擬玩家：持續普攻（手速有落差），集氣滿後需要 1.5~4.5 秒找字念出
+// 模擬玩家：集氣滿後需要 1.5~4.5 秒找字念出
 function makeBot(game, slot) {
-  let nextTap = 0, readyAt = null;
+  let readyAt = null;
   return function act(now) {
     const f = game.fighters[slot];
-    if (now >= nextTap) {
-      game.normalAttack(slot);
-      nextTap = now + 1200 + Math.random() * 500;
-    }
     if (f.gauge >= 100) {
       if (readyAt === null) readyAt = now + 1500 + Math.random() * 3000;
       if (now >= readyAt) {

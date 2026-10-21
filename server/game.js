@@ -8,14 +8,11 @@ const C = {
   GAUGE_MAX: 100,
   GAUGE_BASE: 5,          // 每秒基礎集氣
   GAUGE_PER_SPD: 0.15,    // 每點身法增加的每秒集氣
-  NORMAL_CD: 1200,        // 普攻冷卻 (ms)
-  NORMAL_MULT: 0.5,       // 普攻 = 武術 × 0.5
-  SKILL_BASE: 170,        // 招式基礎傷害（再乘以 power 與 靈力/55）
-  HEAL_BASE: 135,
+  SKILL_BASE: 300,        // 招式基礎傷害（再乘以 power 與 靈力/55）
+  HEAL_BASE: 130,
   SPI_REF: 55,
   DEF_K: 80,              // 減傷 = DEF_K / (DEF_K + 防禦)
   CRIT_MULT: 1.5,
-  NORMAL_IMPACT: 260,
   SKILL_IMPACT: 750,
   MULTI_GAP: 160,
   RESETS: 1
@@ -36,7 +33,6 @@ class Game {
         slot, ch,
         hp: ch.stats.hp, maxHp: ch.stats.hp,
         gauge: 0,
-        nextNormalAt: now,
         resetsLeft: C.RESETS,
         buffs: [],  // { stat, amount, until, name }
         dots: []    // { name, nextAt, until, perTick, from }
@@ -53,7 +49,7 @@ class Game {
   stat(f, key) {
     const base = f.ch.stats[key];
     let mult = 1;
-    const buffKey = (key === 'wu' || key === 'spi') ? 'atk' : key;
+    const buffKey = key === 'spi' ? 'atk' : key; // 攻擊增減益作用在靈力
     for (const b of f.buffs) if (b.stat === buffKey) mult += b.amount;
     return base * Math.max(0.3, Math.min(2.5, mult));
   }
@@ -67,7 +63,6 @@ class Game {
 
   variance(f) { return 0.88 + 0.24 * this.luckyRoll(f); }
   critChance(f) { return 0.03 + f.ch.stats.luck * 0.0012; }
-  dodgeChance(f) { return f.ch.stats.luck * 0.0012; }
   defFactor(f) { return C.DEF_K / (C.DEF_K + this.stat(f, 'def')); }
   gaugeRate(f) { return Math.max(2, C.GAUGE_BASE + this.stat(f, 'spd') * C.GAUGE_PER_SPD); }
 
@@ -134,25 +129,6 @@ class Game {
   }
 
   // ---------- 玩家動作 ----------
-
-  normalAttack(slot) {
-    if (this.over) return { ok: false, reason: 'over' };
-    const f = this.fighters[slot], foe = this.fighters[1 - slot];
-    if (this.now < f.nextNormalAt) return { ok: false, reason: 'cooldown' };
-    f.nextNormalAt = this.now + C.NORMAL_CD;
-    this.emit('normal', { slot, impactMs: C.NORMAL_IMPACT });
-    this.schedule(C.NORMAL_IMPACT, () => {
-      if (this.rng() < this.dodgeChance(foe)) {
-        this.emit('hit', { src: slot, dst: foe.slot, kind: 'miss', amount: 0, hp: foe.hp });
-        return;
-      }
-      let dmg = this.stat(f, 'wu') * C.NORMAL_MULT * this.variance(f) * this.defFactor(foe);
-      const crit = this.rng() < this.critChance(f);
-      if (crit) dmg *= C.CRIT_MULT;
-      this.damage(f, foe, dmg, { crit, label: '普攻' });
-    });
-    return { ok: true };
-  }
 
   // path: 選填，玩家手動點選的格子索引
   castSkill(slot, name, path) {
@@ -264,7 +240,6 @@ class Game {
         maxHp: f.maxHp,
         gauge: Math.floor(f.gauge * 10) / 10,
         rate: Math.round(this.gaugeRate(f) * 100) / 100,
-        normalIn: Math.max(0, f.nextNormalAt - this.now),
         resets: f.resetsLeft,
         buffs: f.buffs.map(b => ({ name: b.name, stat: b.stat, amount: b.amount, left: Math.max(0, b.until - this.now) })),
         dots: f.dots.map(d => ({ name: d.name, left: Math.max(0, d.until - this.now) })),

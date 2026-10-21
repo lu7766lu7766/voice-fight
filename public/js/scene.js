@@ -67,21 +67,6 @@
       f.anim = Object.assign({ name, start: performance.now(), dur }, extra);
     }
 
-    onNormal(ev) {
-      const s = ev.slot, f = this.fighters[s];
-      if (!f) return;
-      const melee = Sprites.isMelee(f.look.weapon);
-      this.playAnim(s, 'normal', 520);
-      const now = performance.now();
-      if (melee) {
-        this.addFx(now + 230, 260, (ctx, t) => this.drawSlashArc(ctx, this.body(1 - s), f.look.aura, t, 0.6, f.facing));
-      } else {
-        const color = f.look.aura;
-        const shape = f.look.weapon === 'bow' ? 'arrow' : 'orb';
-        this.addFx(now + 120, 150, (ctx, t) => this.drawProjectile(ctx, this.hand(s), this.body(1 - s), t, color, shape, 0.7));
-      }
-    }
-
     onSkill(ev) {
       const s = ev.slot, f = this.fighters[s];
       if (!f) return;
@@ -109,8 +94,6 @@
           break;
         case 'heal':
           text = '+' + ev.amount; color = '#5dff9a'; size = 24; break;
-        case 'miss':
-          text = '閃避'; color = '#cfe8ff'; size = 20; break;
         case 'buff':
           text = buffText(ev.stat, true); color = '#ffe28a'; size = 18; break;
         case 'debuff':
@@ -186,7 +169,7 @@
 
     layer(i, now) {
       const f = this.fighters[i];
-      return f && f.anim && (f.anim.name === 'normal' || f.anim.name === 'cast') ? 1 : 0;
+      return f && f.anim && f.anim.name === 'cast' ? 1 : 0;
     }
 
     paintBackground() {
