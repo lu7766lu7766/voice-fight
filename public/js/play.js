@@ -175,7 +175,7 @@
                 <span class="v">${ch.stats[k]}</span></div>`).join('')}
           </div>
         </div>
-        <ul class="moves-mini">${ch.moves.map(m => `<li><span class="tag ${m.type}">${TYPE_LABEL[m.type]}</span><b>${m.name}</b><span>${m.desc}</span></li>`).join('')}</ul>`;
+        <ul class="moves-mini">${ch.moves.map(m => `<li><span class="tag ${m.type}">${TYPE_LABEL[m.type]}</span><b><i class="chip" style="background:${m.color}"></i>${m.name}</b><span>${m.desc}</span></li>`).join('')}</ul>`;
     }
 
     const st = $('#lobbyStatus'), btn = $('#confirmBtn');
@@ -314,6 +314,19 @@
     $('#resetLeft').textContent = me.resets;
     updateHint(full, me.avail || []);
   }
+
+  // 招式上色：盤面上拼得出自己的招式時，那幾格染成該招式的顏色（只在自己的手機）
+  function recolorMoves() {
+    const colors = new Map();
+    if (S.battle && S.started) {
+      const me = byId[S.battle.chars[S.slot]];
+      for (const m of me.moves) {
+        for (const path of board.findAllPathIds(m.name)) for (const id of path) if (!colors.has(id)) colors.set(id, m.color);
+      }
+    }
+    board.setMoveColors(colors);
+  }
+  board.onChange = recolorMoves;
 
   // 集氣滿了一段時間還沒出招，就讓盤面上一組自己的招式方塊閃爍（只在自己的手機）
   const HINT_DELAY_MS = 3000;
@@ -480,7 +493,7 @@
     const me = S.battle && byId[S.battle.chars[S.slot]];
     if (!me) return;
     $('#movesList').innerHTML = me.moves.map(m => {
-      return `<li><span class="mn">${m.name}</span><span class="st"></span>
+      return `<li style="border-left: 6px solid ${m.color}"><span class="mn"><i class="chip" style="background:${m.color}"></i>${m.name}</span><span class="st"></span>
         <span class="ds"><span class="tag ${m.type}">${TYPE_LABEL[m.type]}</span>${m.desc}</span></li>`;
     }).join('');
     $('#statsBox').innerHTML = Object.keys(STAT_LABELS).map(k => `<div>${STAT_LABELS[k]}<b>${me.stats[k]}</b></div>`).join('');

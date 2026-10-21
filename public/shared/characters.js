@@ -10,6 +10,7 @@
   //  buff   自身增益            stat, amount, dur
   //  debuff 對手減益 + 少量傷害  stat, amount, dur, power
   // stat: atk(靈力) / def(防禦) / spd(身法)
+  // color: 招式專屬顏色，盤面上拼得出這個招式時，方塊會染成這個顏色（同一角色的 5 招顏色都不同）
   const CHARACTERS = [
     {
       id: 'lingfeng',
@@ -23,11 +24,11 @@
         weapon: 'sword', aura: '#7fc8ff'
       },
       moves: [
-        { name: '御劍', type: 'atk', power: 1.0, fx: 'swordbeam', desc: '以氣御劍，飛劍直取敵人' },
-        { name: '劍氣斬', type: 'atk', power: 1.35, fx: 'slash', desc: '凝聚劍氣，橫斬一擊' },
-        { name: '醉仙步', type: 'buff', stat: 'spd', amount: 0.8, dur: 10, refund: 35, fx: 'wind', desc: '立即回氣 35，身法 +80%（10 秒）' },
-        { name: '天罡戰氣', type: 'buff', stat: 'atk', amount: 0.35, dur: 10, fx: 'aura', desc: '靈力 +35%（10 秒）' },
-        { name: '萬劍歸宗', type: 'multi', power: 1.65, hits: 5, fx: 'swords', desc: '萬劍齊落，五段傷害' }
+        { name: '御劍', type: 'atk', color: '#1971c2', power: 1.0, fx: 'swordbeam', desc: '以氣御劍，飛劍直取敵人' },
+        { name: '劍氣斬', type: 'atk', color: '#0c8599', power: 1.35, fx: 'slash', desc: '凝聚劍氣，橫斬一擊' },
+        { name: '醉仙步', type: 'buff', color: '#2f9e44', stat: 'spd', amount: 0.8, dur: 10, refund: 35, fx: 'wind', desc: '立即回氣 35，身法 +80%（10 秒）' },
+        { name: '天罡戰氣', type: 'buff', color: '#f08c00', stat: 'atk', amount: 0.35, dur: 10, fx: 'aura', desc: '靈力 +35%（10 秒）' },
+        { name: '萬劍歸宗', type: 'multi', color: '#9c36b5', power: 1.65, hits: 5, fx: 'swords', desc: '萬劍齊落，五段傷害' }
       ]
     },
     {
@@ -42,11 +43,11 @@
         weapon: 'staff', aura: '#e2a8ff'
       },
       moves: [
-        { name: '雷咒', type: 'atk', power: 1.0, fx: 'thunder', desc: '召喚落雷轟擊敵人' },
-        { name: '冰心訣', type: 'heal', power: 1.05, fx: 'heal', desc: '心如止水，回復氣血' },
-        { name: '天雷破', type: 'atk', power: 1.35, fx: 'thunderbig', desc: '天降巨雷，威力強大' },
-        { name: '五氣朝元', type: 'heal', power: 1.55, fx: 'healbig', desc: '五氣歸元，大量回復氣血' },
-        { name: '冰封千里', type: 'debuff', stat: 'spd', amount: -0.35, dur: 7, power: 1.3, fx: 'ice', desc: '冰封敵人，傷害並降低身法 35%' }
+        { name: '雷咒', type: 'atk', color: '#9c36b5', power: 1.0, fx: 'thunder', desc: '召喚落雷轟擊敵人' },
+        { name: '冰心訣', type: 'heal', color: '#d6336c', power: 1.05, fx: 'heal', desc: '心如止水，回復氣血' },
+        { name: '天雷破', type: 'atk', color: '#f08c00', power: 1.35, fx: 'thunderbig', desc: '天降巨雷，威力強大' },
+        { name: '五氣朝元', type: 'heal', color: '#2f9e44', power: 1.55, fx: 'healbig', desc: '五氣歸元，大量回復氣血' },
+        { name: '冰封千里', type: 'debuff', color: '#1971c2', stat: 'spd', amount: -0.35, dur: 7, power: 1.3, fx: 'ice', desc: '冰封敵人，傷害並降低身法 35%' }
       ]
     },
     {
@@ -61,11 +62,11 @@
         weapon: 'whip', aura: '#ff8a65'
       },
       moves: [
-        { name: '鳳舞', type: 'atk', power: 1.0, fx: 'whip', desc: '鞭如鳳舞，迅捷一擊' },
-        { name: '怒火', type: 'buff', stat: 'atk', amount: 0.4, dur: 10, fx: 'fire', desc: '靈力 +40%（10 秒）' },
-        { name: '連環鞭', type: 'multi', power: 1.4, hits: 3, fx: 'whipmulti', desc: '鞭影連環，三段傷害' },
-        { name: '破甲擊', type: 'debuff', stat: 'def', amount: -0.4, dur: 8, power: 0.8, fx: 'crack', desc: '傷害並降低對手防禦 40%' },
-        { name: '流星趕月', type: 'atk', power: 1.6, fx: 'meteor', desc: '如流星追月，重擊敵人' }
+        { name: '鳳舞', type: 'atk', color: '#d6336c', power: 1.0, fx: 'whip', desc: '鞭如鳳舞，迅捷一擊' },
+        { name: '怒火', type: 'buff', color: '#e03131', stat: 'atk', amount: 0.4, dur: 10, fx: 'fire', desc: '靈力 +40%（10 秒）' },
+        { name: '連環鞭', type: 'multi', color: '#f08c00', power: 1.4, hits: 3, fx: 'whipmulti', desc: '鞭影連環，三段傷害' },
+        { name: '破甲擊', type: 'debuff', color: '#9c36b5', stat: 'def', amount: -0.4, dur: 8, power: 0.8, fx: 'crack', desc: '傷害並降低對手防禦 40%' },
+        { name: '流星趕月', type: 'atk', color: '#1971c2', power: 1.6, fx: 'meteor', desc: '如流星追月，重擊敵人' }
       ]
     },
     {
@@ -80,11 +81,11 @@
         weapon: 'bell', aura: '#8ef0a0'
       },
       moves: [
-        { name: '蠱毒', type: 'dot', power: 1.15, dur: 6, fx: 'poison', desc: '種下蠱毒，持續 6 秒傷害' },
-        { name: '噬魂', type: 'drain', power: 1.0, fx: 'drain', desc: '吞噬魂魄，傷害並吸取一半氣血' },
-        { name: '銀鈴咒', type: 'debuff', stat: 'spd', amount: -0.4, dur: 8, power: 0.7, fx: 'bells', desc: '傷害並降低對手身法 40%' },
-        { name: '百草回春', type: 'heal', power: 1.45, fx: 'healbig', desc: '苗疆秘藥，大量回復氣血' },
-        { name: '萬蠱蝕天', type: 'dot', power: 1.7, dur: 6, fx: 'swarm', desc: '萬蠱齊出，持續 6 秒重創' }
+        { name: '蠱毒', type: 'dot', color: '#2f9e44', power: 1.15, dur: 6, fx: 'poison', desc: '種下蠱毒，持續 6 秒傷害' },
+        { name: '噬魂', type: 'drain', color: '#e03131', power: 1.0, fx: 'drain', desc: '吞噬魂魄，傷害並吸取一半氣血' },
+        { name: '銀鈴咒', type: 'debuff', color: '#0c8599', stat: 'spd', amount: -0.4, dur: 8, power: 0.7, fx: 'bells', desc: '傷害並降低對手身法 40%' },
+        { name: '百草回春', type: 'heal', color: '#d6336c', power: 1.45, fx: 'healbig', desc: '苗疆秘藥，大量回復氣血' },
+        { name: '萬蠱蝕天', type: 'dot', color: '#9c36b5', power: 1.7, dur: 6, fx: 'swarm', desc: '萬蠱齊出，持續 6 秒重創' }
       ]
     },
     {
@@ -99,11 +100,11 @@
         weapon: 'talisman', aura: '#ffe28a'
       },
       moves: [
-        { name: '符火', type: 'atk', power: 1.0, fx: 'firetalisman', desc: '火符飛射，焚燒敵人' },
-        { name: '破軍斬', type: 'atk', power: 1.35, fx: 'slash', desc: '破軍之勢，劈斬敵陣' },
-        { name: '鎮妖符', type: 'debuff', stat: 'atk', amount: -0.3, dur: 8, power: 0.7, fx: 'talisman', desc: '傷害並降低對手靈力 30%' },
-        { name: '真元護體', type: 'buff', stat: 'def', amount: 0.6, dur: 10, fx: 'shield', desc: '防禦 +60%（10 秒）' },
-        { name: '雷霆萬鈞', type: 'atk', power: 1.6, fx: 'thunderbig', desc: '雷霆之力，萬鈞一擊' }
+        { name: '符火', type: 'atk', color: '#e03131', power: 1.0, fx: 'firetalisman', desc: '火符飛射，焚燒敵人' },
+        { name: '破軍斬', type: 'atk', color: '#f08c00', power: 1.35, fx: 'slash', desc: '破軍之勢，劈斬敵陣' },
+        { name: '鎮妖符', type: 'debuff', color: '#9c36b5', stat: 'atk', amount: -0.3, dur: 8, power: 0.7, fx: 'talisman', desc: '傷害並降低對手靈力 30%' },
+        { name: '真元護體', type: 'buff', color: '#1971c2', stat: 'def', amount: 0.6, dur: 10, fx: 'shield', desc: '防禦 +60%（10 秒）' },
+        { name: '雷霆萬鈞', type: 'atk', color: '#0c8599', power: 1.6, fx: 'thunderbig', desc: '雷霆之力，萬鈞一擊' }
       ]
     },
     {
@@ -118,11 +119,11 @@
         weapon: 'bow', aura: '#9ff2e5'
       },
       moves: [
-        { name: '風行', type: 'buff', stat: 'spd', amount: 0.8, dur: 10, refund: 35, fx: 'wind', desc: '立即回氣 35，身法 +80%（10 秒）' },
-        { name: '狼嘯', type: 'debuff', stat: 'def', amount: -0.3, dur: 8, power: 0.7, fx: 'howl', desc: '傷害並降低對手防禦 30%' },
-        { name: '穿雲箭', type: 'atk', power: 1.35, fx: 'arrow', desc: '一箭穿雲，直取要害' },
-        { name: '連珠箭', type: 'multi', power: 1.4, hits: 3, fx: 'arrows', desc: '箭如連珠，三段傷害' },
-        { name: '鷹擊長空', type: 'atk', power: 1.6, fx: 'eagle', desc: '蒼鷹撲擊，重創敵人' }
+        { name: '風行', type: 'buff', color: '#2f9e44', stat: 'spd', amount: 0.8, dur: 10, refund: 35, fx: 'wind', desc: '立即回氣 35，身法 +80%（10 秒）' },
+        { name: '狼嘯', type: 'debuff', color: '#f08c00', stat: 'def', amount: -0.3, dur: 8, power: 0.7, fx: 'howl', desc: '傷害並降低對手防禦 30%' },
+        { name: '穿雲箭', type: 'atk', color: '#0c8599', power: 1.35, fx: 'arrow', desc: '一箭穿雲，直取要害' },
+        { name: '連珠箭', type: 'multi', color: '#d6336c', power: 1.4, hits: 3, fx: 'arrows', desc: '箭如連珠，三段傷害' },
+        { name: '鷹擊長空', type: 'atk', color: '#1971c2', power: 1.6, fx: 'eagle', desc: '蒼鷹撲擊，重創敵人' }
       ]
     }
   ];

@@ -148,6 +148,11 @@ button { font-family: inherit; }
   box-shadow: inset 0 -3px 0 rgba(120, 70, 20, .35), inset 0 2px 0 rgba(255, 255, 255, .8), 0 2px 4px rgba(0, 0, 0, .45);
   transition: background .2s, transform .2s, opacity .2s;
 }
+.cell.mv span {
+  background: linear-gradient(160deg, var(--mcl), var(--mcm) 70%, var(--mc));
+  color: #1f1208;
+  box-shadow: inset 0 0 0 2.5px var(--mc), inset 0 2px 0 rgba(255, 255, 255, .7), 0 2px 4px rgba(0, 0, 0, .45);
+}
 .cell.fresh span { animation: land .35s ease-out .25s; }
 @keyframes land { 50% { transform: scaleY(.85) scaleX(1.08); } }
 .cell.swap span { animation: swap .5s ease-out; }
@@ -209,6 +214,7 @@ button { font-family: inherit; }
 .moves-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .moves-list li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .08); }
 .moves-list li.on { border-color: #6dffa0; background: rgba(109, 255, 160, .08); }
+.chip { display: inline-block; width: .7em; height: .7em; border-radius: 50%; margin-right: .35em; vertical-align: .08em; box-shadow: 0 0 0 2px rgba(255, 255, 255, .25); }
 .moves-list .mn { font-family: var(--serif); font-weight: 900; font-size: 22px; letter-spacing: 2px; }
 .moves-list .st { align-self: center; font-size: 13px; color: var(--muted); }
 .moves-list li.on .st { color: #6dffa0; font-weight: 900; }

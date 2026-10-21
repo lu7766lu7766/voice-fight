@@ -38,6 +38,7 @@
         snap.cells.forEach(([id, ch], idx) => this.createCell(id, ch, idx));
         this.clearSelection();
       });
+      this.changed();
     }
 
     clear() {
@@ -74,6 +75,7 @@
           res();
         }, last + 650);
       }));
+      this.changed();
     }
 
     // 洗牌：全部翻轉換字
@@ -86,6 +88,7 @@
           res();
         }, 350);
       }));
+      this.changed();
     }
 
     setBoardNow(snap, flip) {
@@ -132,6 +135,7 @@
           setTimeout(res, 330);
         }, glowMs + 220);
       }));
+      this.changed();
     }
 
     applyFall(snap) {
@@ -165,6 +169,40 @@
       if (!this.snapshot) return;
       this.measure();
       for (const c of this.cells.values()) c.el.style.transform = this.pos(c.idx);
+    }
+
+    // 盤面變動（動畫結束）後通知外部，例如重新幫招式上色
+    changed() {
+      this.queue = this.queue.then(() => { if (this.onChange) this.onChange(); });
+    }
+
+    // 找出盤面上拼出 word 的所有路徑（每條為格子 id 陣列），最多 limit 條
+    findAllPathIds(word, limit = 6) {
+      const snap = this.snapshot;
+      if (!snap) return [];
+      const chars = [...word], n = snap.cells.length, used = new Array(n).fill(false), path = [], out = [];
+      const dfs = (i, k) => {
+        if (out.length >= limit || used[i] || snap.cells[i][1] !== chars[k]) return;
+        used[i] = true; path.push(i);
+        if (k === chars.length - 1) out.push(path.map(idx => snap.cells[idx][0]));
+        else for (let j = 0; j < n; j++) if (!used[j] && this.adjacent(i, j)) dfs(j, k + 1);
+        used[i] = false; path.pop();
+      };
+      for (let i = 0; i < n && out.length < limit; i++) dfs(i, 0);
+      return out;
+    }
+
+    // 招式上色：colors 為 Map(格子 id → 顏色)，不在 Map 裡的格子恢復原色
+    setMoveColors(colors) {
+      for (const c of this.cells.values()) {
+        const col = colors.get(c.id);
+        c.el.classList.toggle('mv', !!col);
+        if (col) {
+          c.el.style.setProperty('--mc', col);
+          c.el.style.setProperty('--mcl', mix(col, 0.78));
+          c.el.style.setProperty('--mcm', mix(col, 0.5));
+        }
+      }
     }
 
     // 找出盤面上拼出 word 的一條路徑（回傳格子 id），找不到回傳 null
@@ -239,6 +277,13 @@
       this.selection = [];
       if (this.snapshot) this.renderSelection();
     }
+  }
+
+  // 顏色與白色混合（amt = 白色比例），用來做淺色底
+  function mix(hex, amt) {
+    const n = parseInt(hex.slice(1), 16);
+    const ch = v => Math.round(v + (255 - v) * amt);
+    return `rgb(${ch((n >> 16) & 255)},${ch((n >> 8) & 255)},${ch(n & 255)})`;
   }
 
   window.BoardView = BoardView;
