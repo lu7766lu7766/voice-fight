@@ -1,0 +1,33 @@
+{
+  "name": "voice-fight",
+  "version": "1.0.0",
+  "description": "手機聲控文字消除對戰遊戲（本機伺服器）",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test test/*.test.js",
+    "balance": "node scripts/balance.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lu7766lu7766/voice-fight.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/lu7766lu7766/voice-fight/issues"
+  },
+  "homepage": "https://github.com/lu7766lu7766/voice-fight#readme",
+  "dependencies": {
+    "express": "^4.22.3",
+    "pinyin-pro": "^3.29.5",
+    "qrcode": "^1.5.4",
+    "selfsigned": "^2.4.1",
+    "socket.io": "^4.8.4"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
+  },
+  "private": true
+}

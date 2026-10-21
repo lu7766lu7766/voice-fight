@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>聲控對戰・房間</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&family=Noto+Serif+TC:wght@700;900&display=swap">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="host">
+  <main class="host-wrap">
+    <h1 class="logo">聲控<span>對戰</span></h1>
+    <div class="room-label">房 間 號 碼</div>
+    <div class="room-code" id="code">----</div>
+    <div class="qr"><img id="qr" alt="QR Code"></div>
+    <div class="url">手機掃描 QR Code，或開啟 <b id="url"></b></div>
+    <div class="alt-urls" id="alts"></div>
+    <div class="slots">
+      <div class="slot s0" id="slot0"><canvas width="220" height="230"></canvas><div class="st">左方：等待玩家…</div></div>
+      <div class="slot s1" id="slot1"><canvas width="220" height="230"></canvas><div class="st">右方：等待玩家…</div></div>
+    </div>
+    <div class="host-foot">
+      <span>一個房間最多兩人・先進房者在左方</span>
+      <button class="btn small" id="newRoom">開新房間</button>
+    </div>
+  </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/shared/characters.js"></script>
+  <script src="/js/sprites.js"></script>
+  <script src="/js/host.js"></script>
+</body>
+</html>
