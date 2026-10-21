@@ -2,9 +2,8 @@
 //
 // 降噪流程（瀏覽器支援 recognition.start(audioTrack) 時啟用，例如新版 Chrome）：
 //   麥克風（瀏覽器內建 noiseSuppression / echoCancellation / autoGainControl）
-//   → 高通 120Hz（濾掉低頻轟隆聲、風切、冷氣）→ 低通 5kHz（濾掉高頻嘶聲）
-//   → 預讀延遲 60ms → 自適應噪音閘（持續估計環境噪音，只有明顯大於環境音的人聲才放行）
-//   → 壓縮器（拉平音量）→ 交給語音辨識
+//   → 高通 90Hz（濾掉冷氣、風切等低頻轟隆聲）→ 交給語音辨識
+// 刻意不做噪音閘、壓縮等重處理：那些會切掉字頭或壓扁人聲，反而讓辨識變差。
 // 不支援的瀏覽器（例如 iPhone Safari）自動退回一般收音。
 (function () {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -16,7 +15,7 @@
   class MicPipeline {
     constructor() {
       this.ctx = null; this.stream = null; this.track = null;
-      this.rms = 0; this.floor = 0.006; this.open_ = false; this.lastLoud = 0;
+      this.rms = 0; this.floor = 0.006;
     }
 
     get ready() { return !!(this.track && this.track.readyState === 'live'); }
@@ -31,63 +30,38 @@
       const ctx = this.ctx = new AC();
       if (ctx.state === 'suspended') await ctx.resume();
       const src = ctx.createMediaStreamSource(this.stream);
-
       const hp = ctx.createBiquadFilter();
-      hp.type = 'highpass'; hp.frequency.value = 120; hp.Q.value = 0.7;
-      const lp = ctx.createBiquadFilter();
-      lp.type = 'lowpass'; lp.frequency.value = 5000; lp.Q.value = 0.7;
-      const delay = ctx.createDelay(0.2);
-      delay.delayTime.value = 0.06; // 讓噪音閘「先聽後放」，不會切掉字頭
-      this.gate = ctx.createGain();
-      this.gate.gain.value = 0.1;
-      const comp = ctx.createDynamicsCompressor();
-      comp.threshold.value = -32; comp.knee.value = 18; comp.ratio.value = 4;
-      comp.attack.value = 0.003; comp.release.value = 0.25;
+      hp.type = 'highpass'; hp.frequency.value = 90; hp.Q.value = 0.7;
       this.analyser = ctx.createAnalyser();
       this.analyser.fftSize = 1024;
       this.buf = new Float32Array(this.analyser.fftSize);
       const dest = ctx.createMediaStreamDestination();
-
-      src.connect(hp); hp.connect(lp);
-      lp.connect(this.analyser);
-      lp.connect(delay); delay.connect(this.gate); this.gate.connect(comp); comp.connect(dest);
+      src.connect(hp); hp.connect(dest); hp.connect(this.analyser);
       this.track = dest.stream.getAudioTracks()[0];
-      this.timer = setInterval(() => this.updateGate(), 20);
+      this.timer = setInterval(() => this.measure(), 30);
     }
 
-    // 自適應噪音閘：安靜時慢慢學環境音量，人聲明顯大於環境音才開門
-    updateGate() {
+    // 量音量並估計環境噪音（只用來顯示音量條，不會改動送去辨識的聲音）
+    measure() {
       if (!this.analyser) return;
       this.analyser.getFloatTimeDomainData(this.buf);
       let sum = 0;
       for (let i = 0; i < this.buf.length; i++) sum += this.buf[i] * this.buf[i];
-      const rms = Math.sqrt(sum / this.buf.length);
-      this.rms = rms;
-      const now = performance.now();
-      if (!this.open_) {
-        // 低於目前估計就快速下修，高於則緩慢上修（避免把人聲學成噪音）
-        this.floor = rms < this.floor ? this.floor * 0.85 + rms * 0.15 : this.floor * 0.995 + rms * 0.005;
-        this.floor = Math.max(0.002, Math.min(0.08, this.floor));
-      }
-      const openAt = Math.max(this.floor * 2.8, 0.012);
-      const keepAt = Math.max(this.floor * 1.8, 0.008);
-      if (rms > openAt) { this.open_ = true; this.lastLoud = now; }
-      else if (rms > keepAt && this.open_) this.lastLoud = now;
-      else if (this.open_ && now - this.lastLoud > 350) this.open_ = false;
-      const t = this.ctx.currentTime;
-      this.gate.gain.setTargetAtTime(this.open_ ? 1 : 0.08, t, this.open_ ? 0.005 : 0.08);
+      const rms = this.rms = Math.sqrt(sum / this.buf.length);
+      this.floor = rms < this.floor ? this.floor * 0.85 + rms * 0.15 : this.floor * 0.995 + rms * 0.005;
+      this.floor = Math.max(0.002, Math.min(0.08, this.floor));
     }
 
     // 0~1 的音量（給畫面上的音量條）
     level() { return Math.min(1, this.rms * 8); }
-    isVoice() { return this.open_; }
+    isVoice() { return this.rms > Math.max(this.floor * 2.5, 0.012); }
 
     close() {
       clearInterval(this.timer);
       if (this.stream) this.stream.getTracks().forEach(t => t.stop());
       if (this.ctx) this.ctx.close().catch(() => {});
       this.ctx = this.stream = this.track = this.analyser = null;
-      this.open_ = false; this.rms = 0;
+      this.rms = 0;
     }
   }
 
@@ -122,7 +96,7 @@
       const rec = new SR();
       rec.lang = this.lang;
       rec.interimResults = true;
-      rec.continuous = false;
+      rec.continuous = true; // 按住期間持續收音，停頓也不會中斷
       rec.maxAlternatives = 5;
       let gotResult = false;
       rec.onstart = () => { this.active = true; this.starting = false; this.onState('listening'); if (this.wantStop) this.stop(); };

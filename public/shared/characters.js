@@ -16,7 +16,7 @@
       name: '凌風',
       title: '御劍少俠',
       origin: '原型：仙劍一・李逍遙',
-      stats: { hp: 1060, spi: 64, spd: 55, luck: 50, def: 50 },
+      stats: { hp: 1065, spi: 64, spd: 55, luck: 50, def: 50 },
       look: {
         skin: '#ffe0c4', hair: '#4a2c1a', hairStyle: 'spiky',
         main: '#3b6fb6', sub: '#f2f2f2', trim: '#e8c35a', band: '#c0392b',
@@ -27,7 +27,7 @@
         { name: '劍氣斬', type: 'atk', power: 1.35, fx: 'slash', desc: '凝聚劍氣，橫斬一擊' },
         { name: '醉仙步', type: 'buff', stat: 'spd', amount: 0.8, dur: 10, refund: 35, fx: 'wind', desc: '立即回氣 35，身法 +80%（10 秒）' },
         { name: '天罡戰氣', type: 'buff', stat: 'atk', amount: 0.35, dur: 10, fx: 'aura', desc: '靈力 +35%（10 秒）' },
-        { name: '萬劍歸宗', type: 'multi', power: 1.85, hits: 5, fx: 'swords', desc: '萬劍齊落，五段傷害' }
+        { name: '萬劍歸宗', type: 'multi', power: 1.65, hits: 5, fx: 'swords', desc: '萬劍齊落，五段傷害' }
       ]
     },
     {
@@ -35,7 +35,7 @@
       name: '靈月',
       title: '女媧後裔',
       origin: '原型：仙劍一・趙靈兒',
-      stats: { hp: 890, spi: 72, spd: 52, luck: 52, def: 44 },
+      stats: { hp: 915, spi: 72, spd: 52, luck: 52, def: 44 },
       look: {
         skin: '#ffe6d2', hair: '#3b2a5c', hairStyle: 'twinbuns',
         main: '#b77fd6', sub: '#fbe9ff', trim: '#f4c6e6', band: '#7a4fb0',
@@ -54,7 +54,7 @@
       name: '紅綾',
       title: '鞭影俠女',
       origin: '原型：仙劍一・林月如',
-      stats: { hp: 1020, spi: 64, spd: 56, luck: 45, def: 50 },
+      stats: { hp: 970, spi: 64, spd: 56, luck: 45, def: 50 },
       look: {
         skin: '#ffe0c8', hair: '#2a1a14', hairStyle: 'ponytail',
         main: '#d64545', sub: '#fff1e6', trim: '#f2b134', band: '#f2b134',
@@ -65,7 +65,7 @@
         { name: '怒火', type: 'buff', stat: 'atk', amount: 0.4, dur: 10, fx: 'fire', desc: '靈力 +40%（10 秒）' },
         { name: '連環鞭', type: 'multi', power: 1.4, hits: 3, fx: 'whipmulti', desc: '鞭影連環，三段傷害' },
         { name: '破甲擊', type: 'debuff', stat: 'def', amount: -0.4, dur: 8, power: 0.8, fx: 'crack', desc: '傷害並降低對手防禦 40%' },
-        { name: '流星趕月', type: 'atk', power: 1.8, fx: 'meteor', desc: '如流星追月，重擊敵人' }
+        { name: '流星趕月', type: 'atk', power: 1.6, fx: 'meteor', desc: '如流星追月，重擊敵人' }
       ]
     },
     {
@@ -73,7 +73,7 @@
       name: '阿蠻',
       title: '苗疆蠱女',
       origin: '原型：仙劍一・阿奴',
-      stats: { hp: 960, spi: 56, spd: 60, luck: 66, def: 44 },
+      stats: { hp: 980, spi: 56, spd: 60, luck: 66, def: 44 },
       look: {
         skin: '#f7d2b0', hair: '#1e1b2e', hairStyle: 'miao',
         main: '#2f6f6a', sub: '#e7f4ef', trim: '#d9dde3', band: '#c0c7d1',
@@ -84,7 +84,7 @@
         { name: '噬魂', type: 'drain', power: 1.0, fx: 'drain', desc: '吞噬魂魄，傷害並吸取一半氣血' },
         { name: '銀鈴咒', type: 'debuff', stat: 'spd', amount: -0.4, dur: 8, power: 0.7, fx: 'bells', desc: '傷害並降低對手身法 40%' },
         { name: '百草回春', type: 'heal', power: 1.45, fx: 'healbig', desc: '苗疆秘藥，大量回復氣血' },
-        { name: '萬蠱蝕天', type: 'dot', power: 2.0, dur: 6, fx: 'swarm', desc: '萬蠱齊出，持續 6 秒重創' }
+        { name: '萬蠱蝕天', type: 'dot', power: 1.7, dur: 6, fx: 'swarm', desc: '萬蠱齊出，持續 6 秒重創' }
       ]
     },
     {
@@ -92,7 +92,7 @@
       name: '靖遠',
       title: '符劍少年',
       origin: '原型：天之痕・陳靖仇',
-      stats: { hp: 1065, spi: 60, spd: 48, luck: 46, def: 62 },
+      stats: { hp: 1040, spi: 60, spd: 48, luck: 46, def: 62 },
       look: {
         skin: '#ffe0c4', hair: '#20160f', hairStyle: 'topknot',
         main: '#c99a2e', sub: '#fff6dc', trim: '#7a4b22', band: '#7a4b22',
@@ -103,7 +103,7 @@
         { name: '破軍斬', type: 'atk', power: 1.35, fx: 'slash', desc: '破軍之勢，劈斬敵陣' },
         { name: '鎮妖符', type: 'debuff', stat: 'atk', amount: -0.3, dur: 8, power: 0.7, fx: 'talisman', desc: '傷害並降低對手靈力 30%' },
         { name: '真元護體', type: 'buff', stat: 'def', amount: 0.6, dur: 10, fx: 'shield', desc: '防禦 +60%（10 秒）' },
-        { name: '雷霆萬鈞', type: 'atk', power: 1.8, fx: 'thunderbig', desc: '雷霆之力，萬鈞一擊' }
+        { name: '雷霆萬鈞', type: 'atk', power: 1.6, fx: 'thunderbig', desc: '雷霆之力，萬鈞一擊' }
       ]
     },
     {
@@ -111,7 +111,7 @@
       name: '玉兒',
       title: '草原神箭',
       origin: '原型：天之痕・拓跋玉兒',
-      stats: { hp: 970, spi: 57, spd: 62, luck: 54, def: 46 },
+      stats: { hp: 990, spi: 57, spd: 62, luck: 54, def: 46 },
       look: {
         skin: '#f6d3b3', hair: '#5a2f1b', hairStyle: 'furhat',
         main: '#2d8a8a', sub: '#fdf3e1', trim: '#e07b39', band: '#f5efe4',
@@ -122,7 +122,7 @@
         { name: '狼嘯', type: 'debuff', stat: 'def', amount: -0.3, dur: 8, power: 0.7, fx: 'howl', desc: '傷害並降低對手防禦 30%' },
         { name: '穿雲箭', type: 'atk', power: 1.35, fx: 'arrow', desc: '一箭穿雲，直取要害' },
         { name: '連珠箭', type: 'multi', power: 1.4, hits: 3, fx: 'arrows', desc: '箭如連珠，三段傷害' },
-        { name: '鷹擊長空', type: 'atk', power: 1.8, fx: 'eagle', desc: '蒼鷹撲擊，重創敵人' }
+        { name: '鷹擊長空', type: 'atk', power: 1.6, fx: 'eagle', desc: '蒼鷹撲擊，重創敵人' }
       ]
     }
   ];

@@ -6,13 +6,14 @@ const { Board } = require('./board');
 
 const C = {
   GAUGE_MAX: 100,
-  GAUGE_BASE: 5,          // 每秒基礎集氣
-  GAUGE_PER_SPD: 0.15,    // 每點身法增加的每秒集氣
-  SKILL_BASE: 300,        // 招式基礎傷害（再乘以 power 與 靈力/55）
-  HEAL_BASE: 130,
+  GAUGE_BASE: 7,          // 每秒基礎集氣
+  GAUGE_PER_SPD: 0.18,    // 每點身法增加的每秒集氣
+  SKILL_BASE: 150,        // 招式基礎傷害（再乘以 power 與 靈力/55）
+  HEAL_BASE: 50,
+  HIT_CAP: 0.25,          // 單次傷害上限 = 對手最大氣血 × 25%（暴擊疊增益也不會一兩招秒殺）
   SPI_REF: 55,
   DEF_K: 80,              // 減傷 = DEF_K / (DEF_K + 防禦)
-  CRIT_MULT: 1.5,
+  CRIT_MULT: 1.35,
   SKILL_IMPACT: 750,
   MULTI_GAP: 160,
   RESETS: 1
@@ -51,7 +52,7 @@ class Game {
     let mult = 1;
     const buffKey = key === 'spi' ? 'atk' : key; // 攻擊增減益作用在靈力
     for (const b of f.buffs) if (b.stat === buffKey) mult += b.amount;
-    return base * Math.max(0.3, Math.min(2.5, mult));
+    return base * Math.max(0.5, Math.min(1.6, mult));
   }
 
   // 吉運越高，越容易擲出好結果（有機率擲兩次取較佳）
@@ -97,7 +98,7 @@ class Game {
 
   damage(src, dst, amount, extra = {}) {
     if (this.over) return 0;
-    const dmg = Math.max(1, Math.round(amount));
+    const dmg = Math.max(1, Math.round(Math.min(amount, dst.maxHp * C.HIT_CAP)));
     dst.hp = Math.max(0, dst.hp - dmg);
     this.emit('hit', { src: src.slot, dst: dst.slot, kind: extra.kind || 'dmg', amount: dmg, crit: !!extra.crit, label: extra.label || '', hp: dst.hp });
     if (dst.hp <= 0) this.finish(src.slot);

@@ -2,7 +2,7 @@
 // 房間：最多兩位玩家，先進房者在左（slot 0），後進者在右（slot 1）。
 
 const { Game, C } = require('./game');
-const { matchWords } = require('./speech');
+const { rankWords } = require('./speech');
 const { byId, RESET_WORDS } = require('../public/shared/characters');
 
 const COUNTDOWN_MS = 10000; // 開戰前倒數，期間可以先看招式表
@@ -210,19 +210,28 @@ class Room {
     if (!this.inBattle(slot)) return interim ? null : socket.emit('speechResult', { ok: false, heard, msg: REASONS.notbattle });
     this.game.update(Date.now());
     const f = this.game.fighters[slot];
-    const words = f.ch.moves.map(m => m.name).concat(RESET_WORDS);
-    const candidates = [];
-    for (const alt of alts.slice(0, 6)) {
-      for (const w of matchWords(String(alt).slice(0, 60), words)) if (!candidates.includes(w)) candidates.push(w);
-    }
-    if (!candidates.length) return interim ? null : socket.emit('speechResult', { ok: false, heard, msg: REASONS.nomatch });
+    const moves = f.ch.moves.map(m => m.name);
+    // 綜合所有候選句子，取每個招式的最高分（排名越後面的候選句稍微扣分）
+    const best = new Map();
+    alts.slice(0, 6).forEach((alt, k) => {
+      for (const { word, score } of rankWords(String(alt).slice(0, 60), moves.concat(RESET_WORDS), RESET_WORDS)) {
+        const s = score * (1 - 0.03 * k);
+        if (s > (best.get(word) || 0)) best.set(word, s);
+      }
+    });
+    // 暫時結果要更有把握才出招，避免話還沒說完就誤判
+    const ranked = [...best].filter(([, s]) => !interim || s >= 0.8).sort((a, b) => b[1] - a[1]).map(([w]) => w);
+    if (!ranked.length) return interim ? null : socket.emit('speechResult', { ok: false, heard, msg: REASONS.nomatch });
 
+    // 盤面上有的招式優先（同樣聽起來像，就選找得到的那一個）
+    const avail = this.game.avail[slot];
+    const order = ranked.filter(w => avail.includes(w)).concat(ranked.filter(w => RESET_WORDS.includes(w)), ranked.filter(w => !avail.includes(w) && !RESET_WORDS.includes(w)));
     let last = null;
-    for (const word of candidates) {
+    for (const word of order) {
       const res = RESET_WORDS.includes(word) ? this.game.reset(slot) : this.game.castSkill(slot, word);
       if (res.ok) return socket.emit('speechResult', { ok: true, heard, word });
-      last = { word, reason: res.reason };
-      if (res.reason === 'gauge') break;
+      last = last || { word, reason: res.reason };
+      if (res.reason === 'gauge') { last = { word, reason: res.reason }; break; }
     }
     if (!interim) socket.emit('speechResult', { ok: false, heard, word: last.word, msg: `${last.word}：${REASONS[last.reason] || last.reason}` });
   }

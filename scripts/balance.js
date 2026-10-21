@@ -35,7 +35,12 @@ function makeBot(game, slot) {
 
 function fight(a, b) {
   let now = 0;
-  const game = new Game({ charIds: [a, b], now });
+  const stats = { casts: [0, 0], maxHit: 0 };
+  const onEvent = (type, ev) => {
+    if (type === 'skill') stats.casts[ev.slot]++;
+    if (type === 'hit' && ev.kind === 'dmg') stats.maxHit = Math.max(stats.maxHit, ev.amount / game.fighters[ev.dst].maxHp);
+  };
+  const game = new Game({ charIds: [a, b], now, onEvent });
   const bots = [makeBot(game, 0), makeBot(game, 1)];
   const starved = [0, 0];
   while (!game.over && now < 300000) {
@@ -46,13 +51,13 @@ function fight(a, b) {
     if (Math.random() < 0.5) { bots[0](now); bots[1](now); } else { bots[1](now); bots[0](now); }
     game.avail.forEach((av, i) => { if (av.length < 2) starved[i]++; });
   }
-  return { winner: game.winner, time: now, starved };
+  return { winner: game.winner, time: now, starved, casts: stats.casts[game.winner] || 0, maxHit: stats.maxHit };
 }
 
 const ids = CHARACTERS.map(c => c.id);
 const wins = {}; ids.forEach(i => { wins[i] = { w: 0, n: 0 }; });
 const matrix = {};
-let totalTime = 0, games = 0, starvedTicks = 0;
+let totalTime = 0, games = 0, starvedTicks = 0, totalCasts = 0, maxHit = 0;
 
 for (const a of ids) {
   matrix[a] = {};
@@ -65,7 +70,7 @@ for (const a of ids) {
       const r = swap ? fight(b, a) : fight(a, b);
       const aWon = swap ? r.winner === 1 : r.winner === 0;
       if (aWon) aw++;
-      totalTime += r.time; games++;
+      totalTime += r.time; games++; totalCasts += r.casts; maxHit = Math.max(maxHit, r.maxHit);
       starvedTicks += r.starved[0] + r.starved[1];
     }
     matrix[a][b] = (aw / N * 100).toFixed(0).padStart(3) + '% ';
@@ -79,4 +84,4 @@ console.log('      ' + ids.map(i => name(i).padEnd(4, '　')).join(' '));
 for (const a of ids) console.log(name(a).padEnd(3, '　') + ' ' + ids.map(b => matrix[a][b]).join(' '));
 console.log('\n總勝率');
 for (const a of ids) console.log(`${name(a)}  ${(wins[a].w / wins[a].n * 100).toFixed(1)}%`);
-console.log(`\n平均對戰時間 ${(totalTime / games / 1000).toFixed(1)} 秒；盤面招式不足的 tick 數：${starvedTicks}`);
+console.log(`\n平均對戰時間 ${(totalTime / games / 1000).toFixed(1)} 秒；勝方平均出招 ${(totalCasts / games).toFixed(1)} 次；單次最大傷害 ${(maxHit * 100).toFixed(0)}% 氣血；盤面招式不足的 tick 數：${starvedTicks}`);

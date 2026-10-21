@@ -167,6 +167,29 @@
       for (const c of this.cells.values()) c.el.style.transform = this.pos(c.idx);
     }
 
+    // 找出盤面上拼出 word 的一條路徑（回傳格子 id），找不到回傳 null
+    findPathIds(word) {
+      const snap = this.snapshot;
+      if (!snap) return null;
+      const chars = [...word], n = snap.cells.length, used = new Array(n).fill(false), path = [];
+      const dfs = (i, k) => {
+        if (used[i] || snap.cells[i][1] !== chars[k]) return false;
+        used[i] = true; path.push(i);
+        if (k === chars.length - 1) return true;
+        for (let j = 0; j < n; j++) if (!used[j] && this.adjacent(i, j) && dfs(j, k + 1)) return true;
+        used[i] = false; path.pop();
+        return false;
+      };
+      for (let i = 0; i < n; i++) if (dfs(i, 0)) return path.map(idx => snap.cells[idx][0]);
+      return null;
+    }
+
+    // 閃爍提示：讓指定格子發光
+    setHint(ids) {
+      const set = new Set(ids || []);
+      for (const c of this.cells.values()) c.el.classList.toggle('hint', set.has(c.id));
+    }
+
     // ---------- 手動點選（備援模式） ----------
     setTapMode(on) { this.tapMode = on; this.el.classList.toggle('tapmode', on); this.clearSelection(); }
 

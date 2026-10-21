@@ -37,7 +37,8 @@
         <div id="charDetail" class="char-detail"></div>
       </div>
       <footer class="lobby-foot">
-        <div id="lobbyStatus" class="lobby-status">點選角色即確定，雙方都選好就自動開戰</div>
+        <div id="lobbyStatus" class="lobby-note">點選角色查看能力，按「確定」送出，雙方都確定後自動開戰</div>
+        <button id="confirmBtn" class="btn gold big" disabled>點選角色查看能力</button>
       </footer>
     </section>
 
@@ -62,7 +63,7 @@
       </div>
       <div id="controls">
         <button id="movesBtn" class="ctrl">
-          <b>📜</b><small>招式表</small>
+          <b id="movesIcon">📜</b><small id="movesLabel">招式表</small>
         </button>
         <button id="micBtn" class="ctrl mic">
           <b>🎤</b><small id="micLabel">集氣中…</small>
@@ -77,7 +78,7 @@
   <div id="movesModal" class="modal hidden">
     <div class="sheet">
       <header><h2>我的招式</h2><button class="close" data-close>✕</button></header>
-      <p class="hint">在方塊中找出<b id="adjHint">上下左右相連（可以轉彎）</b>的招式名稱，集氣滿時對著麥克風念出來！<br>✓ 表示目前盤面上找得到。</p>
+      <p class="hint">在方塊中找出<b id="adjHint">上下左右相連（可以轉彎）</b>的招式名稱，集氣滿時對著麥克風念出來！<br>集氣滿了還找不到？稍等一下，盤面上你的招式方塊會閃爍提示。</p>
       <ul id="movesList" class="moves-list"></ul>
       <div id="statsBox" class="stats-box"></div>
       <div class="extra">

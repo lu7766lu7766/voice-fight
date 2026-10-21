@@ -84,6 +84,10 @@ button { font-family: inherit; }
 .tag.atk, .tag.multi { background: #a8332a; } .tag.heal { background: #2f8a50; } .tag.drain { background: #8b1e3f; }
 .tag.dot { background: #4a7a20; } .tag.buff { background: #b0801a; } .tag.debuff { background: #6a3aa0; }
 .lobby-foot { padding: 10px 14px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+.lobby-note { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 8px; min-height: 1.3em; }
+.lobby-note.go { color: #6dffa0; font-weight: 900; }
+.char-card .mine { position: absolute; top: 4px; left: 4px; font-size: 10px; padding: 1px 6px; border-radius: 999px; background: #49c97a; color: #06301a; font-weight: 900; }
+.btn.done { background: linear-gradient(#b8ffcf, #49c97a 60%, #23874a); color: #06301a; box-shadow: 0 3px 0 #14532d; filter: none; }
 .lobby-status { text-align: center; padding: 14px 12px; border-radius: 12px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(242, 196, 90, .35); color: var(--text); font-weight: 700; font-size: 15px; }
 .lobby-status b { color: var(--gold); font-family: var(--serif); font-size: 18px; }
 .lobby-status.go { background: linear-gradient(#b8ffcf, #49c97a 60%, #23874a); color: #06301a; border-color: transparent; }
@@ -157,6 +161,11 @@ button { font-family: inherit; }
 .cell.hit.side0 span { background: linear-gradient(160deg, #bfe3ff, #4fa3ff 60%, #1f5fb0); box-shadow: 0 0 14px #4fa3ff, inset 0 2px 0 rgba(255, 255, 255, .7); }
 .cell.hit.side1 span { background: linear-gradient(160deg, #ffd0c8, #ff6b5a 60%, #b02a1f); box-shadow: 0 0 14px #ff6b5a, inset 0 2px 0 rgba(255, 255, 255, .7); }
 .cell.pop span { transform: scale(1.5); opacity: 0; transition: transform .22s ease-out, opacity .22s ease-out; }
+.cell.hint span { animation: hintflash 1s ease-in-out infinite; }
+@keyframes hintflash {
+  0%, 100% { background: linear-gradient(160deg, #fffaf0, #f4dfb4 55%, #e2c08a); box-shadow: inset 0 -3px 0 rgba(120, 70, 20, .35), 0 2px 4px rgba(0, 0, 0, .45); }
+  50% { background: linear-gradient(160deg, #fff7c2, #ffd34a 60%, #f0a812); box-shadow: 0 0 16px 3px rgba(255, 210, 74, .9); transform: scale(1.06); }
+}
 .cell.sel span { background: linear-gradient(160deg, #fff3b0, #ffd34a 60%, #d99a12); box-shadow: 0 0 10px #ffd34a; }
 #boardCover { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; text-align: center; padding: 0 20px; background: rgba(18, 11, 26, .82); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); font-family: var(--serif); font-size: 26px; color: var(--gold); transition: opacity .3s; }
 #boardCover.hide { opacity: 0; pointer-events: none; }
@@ -190,6 +199,11 @@ button { font-family: inherit; }
 /* ---------- 視窗 ---------- */
 .modal { position: fixed; inset: 0; background: rgba(8, 4, 14, .7); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
 .modal.hidden { display: none; }
+/* 招式表停在操作列上方，讓同一顆按鈕可以開也可以關 */
+#movesModal { bottom: var(--ctrl-h, 0px); }
+#movesModal .sheet { border-radius: 18px; max-height: 92%; padding-bottom: 16px; }
+#controls { position: relative; z-index: 21; }
+#movesBtn.open { background: linear-gradient(#ffe08a, #f2a51a); color: #3a1d00; }
 .sheet { width: 100%; max-width: 520px; max-height: 86%; overflow-y: auto; background: linear-gradient(#2e2042, #1d1329); border-radius: 18px 18px 0 0; padding: 14px 16px; padding-bottom: max(16px, env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(0, 0, 0, .5); }
 .sheet header { display: flex; justify-content: space-between; align-items: center; }
 .sheet h2 { margin: 0; font-family: var(--serif); color: var(--gold); }
