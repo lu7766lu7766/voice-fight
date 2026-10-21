@@ -40,6 +40,42 @@
       });
     }
 
+    clear() {
+      this.queue = this.queue.then(() => {
+        this.el.querySelectorAll('.cell').forEach(n => n.remove());
+        this.cells.clear();
+        this.snapshot = null;
+        this.selection = [];
+      });
+    }
+
+    // 開戰：方塊一欄一欄從上方落下
+    dropIn(snap) {
+      this.queue = this.queue.then(() => new Promise(res => {
+        this.el.querySelectorAll('.cell').forEach(n => n.remove());
+        this.cells.clear();
+        this.snapshot = snap;
+        this.measure();
+        const { cols, rows } = snap;
+        let last = 0;
+        snap.cells.forEach(([id, ch], idx) => {
+          const x = idx % cols, y = Math.floor(idx / cols);
+          const c = this.createCell(id, ch, idx, y - rows - 1);
+          const delay = x * 45 + (rows - 1 - y) * 70;
+          last = Math.max(last, delay);
+          c.el.classList.add('drop', 'fresh');
+          c.el.style.transitionDelay = delay + 'ms';
+        });
+        void this.el.offsetWidth;
+        for (const c of this.cells.values()) c.el.style.transform = this.pos(c.idx);
+        setTimeout(() => {
+          for (const c of this.cells.values()) { c.el.classList.remove('drop', 'fresh'); c.el.style.transitionDelay = ''; }
+          this.clearSelection();
+          res();
+        }, last + 650);
+      }));
+    }
+
     // 洗牌：全部翻轉換字
     reshuffle(snap) {
       this.queue = this.queue.then(() => new Promise(res => {

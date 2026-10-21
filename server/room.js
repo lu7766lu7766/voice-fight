@@ -5,7 +5,7 @@ const { Game, C } = require('./game');
 const { matchWords } = require('./speech');
 const { byId, RESET_WORDS } = require('../public/shared/characters');
 
-const COUNTDOWN_MS = 3000;
+const COUNTDOWN_MS = 10000; // 開戰前倒數，期間可以先看招式表
 const DISCONNECT_GRACE_MS = 30000;
 const STATE_INTERVAL_MS = 100;
 
@@ -25,7 +25,7 @@ class Room {
   constructor(code, io) {
     this.code = code;
     this.io = io;
-    this.players = [null, null]; // { pid, socketId, connected, charId, ready, rematch, dropTimer }
+    this.players = [null, null]; // { pid, socketId, connected, charId, rematch, dropTimer }
     this.phase = 'lobby';
     this.game = null;
     this.countdownEnd = 0;
@@ -48,7 +48,7 @@ class Room {
       slot = this.players.findIndex(p => !p);
       if (slot < 0) return { ok: false, reason: '房間已滿（最多兩人）' };
       if (this.phase !== 'lobby') return { ok: false, reason: '對戰進行中，無法加入' };
-      this.players[slot] = { pid, charId: null, ready: false, rematch: false };
+      this.players[slot] = { pid, charId: null, rematch: false };
     }
     const p = this.players[slot];
     if (p.socketId && p.socketId !== socket.id) {
@@ -64,6 +64,7 @@ class Room {
     socket.emit('joined', { room: this.code, slot });
     this.broadcastRoom();
     if (this.game) socket.emit('battle', this.battleInfo());
+    this.maybeStart();
     return { ok: true, slot };
   }
 
@@ -94,9 +95,9 @@ class Room {
       this.game.finish(1 - slot);
       this.emit('notice', { msg: '對手已離線，判定勝利' });
     }
-    if (this.phase === 'countdown') this.phase = 'lobby';
+    if (this.phase === 'countdown') { this.phase = 'lobby'; this.game = null; }
     if (this.phase !== 'battle') {
-      this.players.forEach(q => { if (q) { q.ready = false; q.rematch = false; } });
+      this.players.forEach(q => { if (q) q.rematch = false; });
     }
     // 只剩一人時，留在房內的玩家移到左邊（先進房者）
     if (!this.players[0] && this.players[1] && this.phase === 'lobby') {
@@ -110,22 +111,18 @@ class Room {
 
   // ---------- 大廳 ----------
 
+  // 選角即確定；兩人都在房內且都選好角色就自動開始倒數
   pick(slot, charId) {
     if (this.phase !== 'lobby' || !byId[charId]) return;
     const p = this.players[slot];
     if (!p) return;
     p.charId = charId;
-    p.ready = false;
     this.broadcastRoom();
+    this.maybeStart();
   }
 
-  setReady(slot, ready) {
-    if (this.phase !== 'lobby') return;
-    const p = this.players[slot];
-    if (!p || !p.charId) return;
-    p.ready = !!ready;
-    this.broadcastRoom();
-    if (this.players.every(q => q && q.ready && q.connected)) this.startCountdown();
+  maybeStart() {
+    if (this.phase === 'lobby' && this.players.every(q => q && q.charId && q.connected)) this.startCountdown();
   }
 
   startCountdown() {
@@ -146,9 +143,10 @@ class Room {
     if (!p) return;
     p.rematch = true;
     if (this.players.every(q => q && q.rematch)) {
+      // 回到選角畫面重新選（選好即自動開戰）
       this.phase = 'lobby';
       this.game = null;
-      this.players.forEach(q => { q.ready = false; q.rematch = false; });
+      this.players.forEach(q => { q.charId = null; q.rematch = false; });
     }
     this.broadcastRoom();
   }
@@ -158,13 +156,21 @@ class Room {
   battleInfo() {
     return {
       chars: this.players.map(p => p && p.charId),
-      board: this.game.board.snapshot(),
+      // 倒數期間不送盤面，開戰時才讓方塊落下
+      board: this.phase === 'countdown' ? null : this.game.board.snapshot(),
       countdownEnd: this.countdownEnd,
       serverNow: Date.now(),
       gaugeMax: C.GAUGE_MAX,
       normalCd: C.NORMAL_CD,
-      state: this.game.state()
+      state: this.publicState()
     };
+  }
+
+  // 倒數期間不透露盤面上有哪些招式
+  publicState() {
+    const st = this.game.state();
+    if (this.phase === 'countdown') st.f.forEach(f => { f.avail = []; });
+    return st;
   }
 
   tick(now) {
@@ -174,6 +180,7 @@ class Room {
       // 倒數期間不集氣：從開戰時刻起算
       this.game.fighters.forEach(f => { f.gauge = 0; f.nextNormalAt = now; });
       this.broadcastRoom();
+      this.emit('begin', { board: this.game.board.snapshot(), state: this.game.state() });
     }
     if (this.phase === 'battle' && this.game) {
       this.game.update(now);
@@ -261,7 +268,7 @@ class Room {
       serverNow: Date.now(),
       winner: this.game && this.game.over ? this.game.winner : -1,
       players: this.players.map(p => p && {
-        charId: p.charId, ready: p.ready, connected: p.connected, rematch: p.rematch
+        charId: p.charId, connected: p.connected, rematch: p.rematch
       })
     };
   }

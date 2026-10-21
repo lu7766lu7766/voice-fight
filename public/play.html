@@ -37,7 +37,7 @@
         <div id="charDetail" class="char-detail"></div>
       </div>
       <footer class="lobby-foot">
-        <button id="readyBtn" class="btn gold big" disabled>請先選擇角色</button>
+        <div id="lobbyStatus" class="lobby-status">點選角色即確定，雙方都選好就自動開戰</div>
       </footer>
     </section>
 
@@ -54,7 +54,11 @@
       <div id="speechBar"><span id="speechText"></span></div>
       <div id="boardWrap">
         <div id="board"></div>
-        <div id="boardCover"><span>準備中…</span></div>
+        <div id="boardCover">
+          <div id="cdNum" class="cd-num"></div>
+          <p class="cd-tip">開戰前先看看招式表，記住招式名稱！</p>
+          <button id="cdMoves" class="btn gold">📜 查看招式表</button>
+        </div>
       </div>
       <div id="controls">
         <button id="movesBtn" class="ctrl">

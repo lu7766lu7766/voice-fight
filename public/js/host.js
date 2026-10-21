@@ -36,7 +36,7 @@
       if (p) {
         if (!p.connected) st = `${side}：連線中斷`;
         else if (!p.charId) st = `${side}：選擇角色中`;
-        else st = `${side}：${byId[p.charId].name} ${p.ready || phase !== 'lobby' ? '✓' : ''}${phaseText}`;
+        else st = `${side}：${byId[p.charId].name} ✓${phaseText}`;
       }
       slot.querySelector('.st').textContent = st;
     });

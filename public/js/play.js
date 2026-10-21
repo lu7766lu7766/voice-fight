@@ -86,7 +86,7 @@
     S.info = info;
     S.timeOffset = info.serverNow - Date.now();
     const me = info.players[S.slot];
-    if (me && me.charId && !S.pick) S.pick = me.charId;
+    S.pick = me ? me.charId : null; // 以伺服器為準（再戰時會清空重選）
     if (info.phase === 'lobby') {
       S.battle = null;
       hideResult();
@@ -111,6 +111,7 @@
       card.innerHTML = `<canvas width="180" height="190"></canvas><div class="nm">${ch.name}</div><div class="tt">${ch.title}</div>`;
       card.addEventListener('click', () => {
         if (!S.info || S.info.phase !== 'lobby') return;
+        unlockAudio();
         S.pick = ch.id;
         portraitAnim[ch.id] = { name: 'select', start: performance.now(), dur: 600 };
         socket.emit('pick', { charId: ch.id });
@@ -145,7 +146,7 @@
     if (!opp) oppEl.innerHTML = '⏳ 等待對手加入房間…';
     else if (!opp.connected) oppEl.innerHTML = '⚠️ 對手連線中斷，等待重新連線…';
     else if (!opp.charId) oppEl.innerHTML = '對手已加入，正在選擇角色…';
-    else oppEl.innerHTML = `對手選擇了 <b>${byId[opp.charId].name}</b> ${opp.ready ? '<span class="ok">✓ 已準備</span>' : '（選擇中）'}`;
+    else oppEl.innerHTML = `對手選擇了 <b>${byId[opp.charId].name}</b> <span class="ok">✓</span>`;
 
     document.querySelectorAll('.char-card').forEach(card => {
       card.classList.toggle('sel', card.dataset.id === S.pick);
@@ -175,23 +176,14 @@
         <ul class="moves-mini">${ch.moves.map(m => `<li><span class="tag ${m.type}">${TYPE_LABEL[m.type]}</span><b>${m.name}</b><span>${m.desc}</span></li>`).join('')}</ul>`;
     }
 
-    const btn = $('#readyBtn');
-    if (!S.pick) { btn.disabled = true; btn.textContent = '請先選擇角色'; btn.classList.remove('ready'); }
-    else {
-      btn.disabled = false;
-      const ready = me && me.ready;
-      btn.classList.toggle('ready', !!ready);
-      btn.textContent = ready ? (opp && opp.ready ? '開戰！' : '✓ 已準備（等待對手）') : '準備！';
-    }
+    const st = $('#lobbyStatus');
+    const name = S.pick ? `<b>${byId[S.pick].name}</b>` : '';
+    st.classList.remove('go');
+    if (!S.pick) st.innerHTML = '點選角色即確定，雙方都選好就自動開戰';
+    else if (!opp) st.innerHTML = `已選擇 ${name}・等待對手加入（可以再換角色）`;
+    else if (!opp.charId) st.innerHTML = `已選擇 ${name}・等待對手選角（可以再換角色）`;
+    else { st.innerHTML = '雙方就緒，即將開戰！'; st.classList.add('go'); }
   }
-
-  $('#readyBtn').addEventListener('click', () => {
-    const me = S.info && S.info.players[S.slot];
-    if (!me || !S.pick) return;
-    if (me.charId !== S.pick) socket.emit('pick', { charId: S.pick });
-    socket.emit('ready', { ready: !me.ready });
-    unlockAudio();
-  });
 
   // ---------- 對戰 ----------
   socket.on('battle', b => {
@@ -205,37 +197,63 @@
     scene.setFighters(chars);
     buildHud(chars);
     show('battle');
-    board.setBoard(b.board);
-    $('#adjHint').textContent = b.board.diagonal ? '相連（上下左右或斜角，可以轉彎）' : '上下左右相連（可以轉彎）';
     renderState(b.state);
     setTapMode(S.tapMode || !voice.supported);
-    runCountdown(b.countdownEnd);
+    if (b.board) {
+      // 對戰中重新連線：直接顯示目前盤面
+      S.started = true;
+      board.setBoard(b.board);
+      setAdjHint(b.board);
+      clearInterval(cdTimer);
+      $('#boardCover').classList.add('hide');
+      $('#controls').classList.remove('locked');
+    } else {
+      S.started = false;
+      board.clear();
+      runCountdown(b.countdownEnd);
+    }
   });
 
+  // 開戰：方塊落下
+  socket.on('begin', d => {
+    if (!S.battle) return;
+    S.started = true;
+    clearInterval(cdTimer);
+    $('#movesModal').classList.add('hidden');
+    $('#boardCover').classList.add('hide');
+    $('#controls').classList.remove('locked');
+    const cd = $('#countdown');
+    cd.textContent = '開戰！'; cd.classList.remove('pop'); void cd.offsetWidth; cd.classList.add('pop');
+    setTimeout(() => { if (cd.textContent === '開戰！') cd.textContent = ''; }, 900);
+    board.dropIn(d.board);
+    setAdjHint(d.board);
+    renderState(d.state);
+    setSpeech(voice.supported && !S.tapMode ? '集氣滿後，按住 🎤 念出招式！' : '點選相連方塊組成招式，再點一次最後一格出招', '');
+  });
+
+  function setAdjHint(snap) {
+    $('#adjHint').textContent = snap.diagonal ? '相連（上下左右或斜角，可以轉彎）' : '上下左右相連（可以轉彎）';
+  }
+
+  // 開戰前倒數（期間可以看招式表，方塊尚未出現）
   let cdTimer = 0;
   function runCountdown(end) {
-    const cd = $('#countdown');
-    const cover = $('#boardCover');
+    const num = $('#cdNum');
+    $('#boardCover').classList.remove('hide');
+    $('#controls').classList.add('locked');
+    $('#countdown').textContent = '';
+    setSpeech('倒數結束後方塊會落下，準備開戰！', '');
     clearInterval(cdTimer);
     const tick = () => {
       const left = end - (Date.now() + S.timeOffset);
-      if (left > 0) {
-        const n = String(Math.ceil(left / 1000));
-        cover.classList.remove('hide');
-        cover.querySelector('span').textContent = '準備中…';
-        if (cd.textContent !== n) { cd.textContent = n; cd.classList.remove('pop'); void cd.offsetWidth; cd.classList.add('pop'); }
-      } else {
-        clearInterval(cdTimer);
-        cd.textContent = '開戰！'; cd.classList.remove('pop'); void cd.offsetWidth; cd.classList.add('pop');
-        cover.classList.add('hide');
-        setTimeout(() => { if (cd.textContent === '開戰！') cd.textContent = ''; }, 900);
-        setSpeech(voice.supported && !S.tapMode ? '集氣滿後，按住 🎤 念出招式！' : '點選相連方塊組成招式，再點一次最後一格出招', '');
-      }
+      const n = String(Math.max(0, Math.ceil(left / 1000)));
+      if (num.textContent !== n) { num.textContent = n; num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop'); }
+      if (left <= 0) clearInterval(cdTimer); // 等伺服器的 begin 事件
     };
-    if (end - (Date.now() + S.timeOffset) <= 0) { cover.classList.add('hide'); cd.textContent = ''; return; }
     tick();
     cdTimer = setInterval(tick, 100);
   }
+  $('#cdMoves').addEventListener('click', () => { renderMoves(); renderDenoise(); $('#movesModal').classList.remove('hidden'); });
 
   function buildHud(chars) {
     chars.forEach((ch, i) => {
@@ -397,6 +415,7 @@
   const mic = $('#micBtn');
   mic.addEventListener('pointerdown', e => {
     e.preventDefault();
+    if (!S.started) { toast('開戰後才能出招'); return; }
     if (S.tapMode) { board.submit(); return; }
     if (!voice.supported) { toast('此瀏覽器不支援語音辨識，請改用手動點選'); return; }
     if (voice.active) { voice.stop(); return; }
@@ -418,7 +437,7 @@
   let atkReadyAt = 0;
   $('#atkBtn').addEventListener('pointerdown', e => {
     e.preventDefault();
-    if (!S.battle) return;
+    if (!S.battle || !S.started) return;
     const now = Date.now();
     if (now < atkReadyAt) return;
     atkReadyAt = now + S.battle.normalCd;
@@ -436,7 +455,8 @@
     const avail = (S.state && S.state.f[S.slot] && S.state.f[S.slot].avail) || [];
     $('#movesList').innerHTML = me.moves.map(m => {
       const on = avail.includes(m.name);
-      return `<li class="${on ? 'on' : ''}"><span class="mn">${m.name}</span><span class="st">${on ? '✓ 盤面上有' : '—'}</span>
+      const mark = !S.started ? '' : on ? '✓ 盤面上有' : '—';
+      return `<li class="${on ? 'on' : ''}"><span class="mn">${m.name}</span><span class="st">${mark}</span>
         <span class="ds"><span class="tag ${m.type}">${TYPE_LABEL[m.type]}</span>${m.desc}</span></li>`;
     }).join('');
     $('#statsBox').innerHTML = Object.keys(STAT_LABELS).map(k => `<div>${STAT_LABELS[k]}<b>${me.stats[k]}</b></div>`).join('');
