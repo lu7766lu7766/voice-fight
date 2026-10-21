@@ -156,7 +156,9 @@
 
     adjacent(a, b) {
       const cols = this.snapshot.cols;
-      return Math.abs((a % cols) - (b % cols)) <= 1 && Math.abs(Math.floor(a / cols) - Math.floor(b / cols)) <= 1;
+      const dx = Math.abs((a % cols) - (b % cols)), dy = Math.abs(Math.floor(a / cols) - Math.floor(b / cols));
+      if (a === b || dx > 1 || dy > 1) return false;
+      return this.snapshot.diagonal || dx + dy === 1;
     }
 
     selectedWord() {

@@ -1,5 +1,6 @@
 'use strict';
-// 文字方塊棋盤：八方向相連（含斜角）、同一格不可重複使用。
+// 文字方塊棋盤：上下左右相連即可（路徑可任意轉彎），同一格不可重複使用。
+// 設定 diagonal: true 時斜角也算相連。
 // 消除後上方方塊落下、頂端補新字，並保證每位玩家都至少有 MIN_PER_PLAYER 個自己的招式可念。
 
 const { FILLER } = require('../public/shared/characters');
@@ -8,15 +9,16 @@ const COLS = 6;
 const ROWS = 6;
 const MIN_PER_PLAYER = 2;
 
-const DIRS = [
-  [-1, -1], [0, -1], [1, -1],
-  [-1, 0], [1, 0],
-  [-1, 1], [0, 1], [1, 1]
-];
+const DIAGONAL = process.env.DIAGONAL === '1';
+
+const ORTHO = [[0, -1], [-1, 0], [1, 0], [0, 1]];
+const DIAG = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
 
 class Board {
-  constructor({ cols = COLS, rows = ROWS, rng = Math.random, minPerPlayer = MIN_PER_PLAYER } = {}) {
+  constructor({ cols = COLS, rows = ROWS, rng = Math.random, minPerPlayer = MIN_PER_PLAYER, diagonal = DIAGONAL } = {}) {
     this.cols = cols;
+    this.diagonal = diagonal;
+    this.dirs = diagonal ? ORTHO.concat(DIAG) : ORTHO;
     this.rows = rows;
     this.rng = rng;
     this.minPerPlayer = minPerPlayer;
@@ -51,7 +53,7 @@ class Board {
   neighbors(i) {
     const [x, y] = this.xy(i);
     const out = [];
-    for (const [dx, dy] of DIRS) {
+    for (const [dx, dy] of this.dirs) {
       const nx = x + dx, ny = y + dy;
       if (nx >= 0 && ny >= 0 && nx < this.cols && ny < this.rows) out.push(this.idx(nx, ny));
     }
@@ -60,7 +62,9 @@ class Board {
 
   isAdjacent(a, b) {
     const [ax, ay] = this.xy(a), [bx, by] = this.xy(b);
-    return (a !== b) && Math.abs(ax - bx) <= 1 && Math.abs(ay - by) <= 1;
+    const dx = Math.abs(ax - bx), dy = Math.abs(ay - by);
+    if (a === b || dx > 1 || dy > 1) return false;
+    return this.diagonal || dx + dy === 1;
   }
 
   newCell(ch) { return { id: this.nextId++, ch }; }
@@ -204,8 +208,8 @@ class Board {
   }
 
   snapshot() {
-    return { cols: this.cols, rows: this.rows, cells: this.cells.map(c => [c.id, c.ch]) };
+    return { cols: this.cols, rows: this.rows, diagonal: this.diagonal, cells: this.cells.map(c => [c.id, c.ch]) };
   }
 }
 
-module.exports = { Board, COLS, ROWS, MIN_PER_PLAYER };
+module.exports = { Board, COLS, ROWS, MIN_PER_PLAYER, DIAGONAL };

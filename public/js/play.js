@@ -33,6 +33,7 @@
       scene.start();
     } else {
       scene.stop();
+      voice.release();
     }
     if (id === 'lobby') startPortraits(); else stopPortraits();
   }
@@ -205,6 +206,7 @@
     buildHud(chars);
     show('battle');
     board.setBoard(b.board);
+    $('#adjHint').textContent = b.board.diagonal ? '相連（上下左右或斜角，可以轉彎）' : '上下左右相連（可以轉彎）';
     renderState(b.state);
     setTapMode(S.tapMode || !voice.supported);
     runCountdown(b.countdownEnd);
@@ -303,7 +305,7 @@
   });
   socket.on('ko', ev => {
     scene.onKO(ev);
-    voice.abort();
+    voice.release();
     vibrate(ev.winner === S.slot ? [50, 50, 50] : 300);
   });
 
@@ -338,12 +340,36 @@
   function onVoiceState(state, msg) {
     const mic = $('#micBtn');
     mic.classList.toggle('listening', state === 'listening');
-    if (state === 'listening') { $('#micLabel').textContent = '聆聽中…'; setSpeech('🎤 請念出招式名稱…', 'listen'); }
+    if (state === 'listening') {
+      $('#micLabel').textContent = '聆聽中…';
+      setSpeech('🎤 請念出招式名稱…' + (voice.usingPipe ? '（降噪中）' : ''), 'listen');
+      meterLoop();
+    }
     else {
       $('#micLabel').textContent = micIdleLabel(S.gaugeFull);
       if (state === 'error') setSpeech(msg, 'bad');
     }
   }
+
+  // 收音時在麥克風按鈕上顯示音量；綠色代表噪音閘判定為人聲
+  function meterLoop() {
+    const el = $('#micLevel'), btn = $('#micBtn');
+    const tick = () => {
+      if (!voice.active) { el.style.transform = 'scaleY(0)'; btn.classList.remove('voice'); return; }
+      el.style.transform = `scaleY(${voice.level().toFixed(3)})`;
+      btn.classList.toggle('voice', voice.usingPipe && voice.pipe.isVoice());
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  function renderDenoise() {
+    $('#denoiseToggle').checked = voice.denoise;
+    $('#denoiseNote').textContent = !voice.supported ? '' :
+      voice.trackSupport === false ? '此瀏覽器不支援降噪管線，使用系統預設收音' :
+      voice.trackSupport === true ? (voice.denoise ? '降噪已啟用' : '') : '第一次收音時會自動偵測是否支援';
+  }
+  $('#denoiseToggle').addEventListener('change', e => { voice.setDenoise(e.target.checked); renderDenoise(); });
 
   function onVoiceResult(alts, isFinal) {
     if (Date.now() < S.speechLockUntil) return;
@@ -415,7 +441,7 @@
     }).join('');
     $('#statsBox').innerHTML = Object.keys(STAT_LABELS).map(k => `<div>${STAT_LABELS[k]}<b>${me.stats[k]}</b></div>`).join('');
   }
-  $('#movesBtn').addEventListener('click', () => { renderMoves(); $('#movesModal').classList.remove('hidden'); });
+  $('#movesBtn').addEventListener('click', () => { renderMoves(); renderDenoise(); $('#movesModal').classList.remove('hidden'); });
   document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => {
     if (e.target === m || e.target.hasAttribute('data-close')) m.classList.add('hidden');
   }));

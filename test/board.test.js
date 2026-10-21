@@ -54,14 +54,38 @@ test('消除後方塊往下掉、頂端補新格，id 不重複', () => {
   });
 });
 
-test('路徑驗證：必須相鄰（含斜角）且不可重複使用同一格', () => {
-  const board = new Board({ cols: 3, rows: 3 });
-  board.setMovesets([['甲乙丙'], []]);
-  '甲乙丙丁戊己庚辛壬'.split('').forEach((ch, i) => { board.cells[i] = { id: i + 1, ch }; });
-  assert.ok(board.pathSpells([0, 1, 2], '甲乙丙'));
-  assert.ok(!board.pathSpells([0, 2, 1], '甲丙乙'), '0 與 2 不相鄰');
-  board.cells[4].ch = '乙';
-  assert.ok(board.pathSpells([0, 4, 2], '甲乙丙'), '斜角相連');
-  assert.ok(!board.pathSpells([0, 0, 2], '甲甲丙'));
-  assert.deepStrictEqual(board.findPaths('甲乙丙').length, 2);
+function grid(text, opts = {}) {
+  const n = Math.sqrt([...text].length);
+  const board = new Board({ cols: n, rows: n, ...opts });
+  board.setMovesets([[], []]);
+  [...text].forEach((ch, i) => { board.cells[i] = { id: i + 1, ch }; });
+  return board;
+}
+
+test('上下左右相連即可，路徑可以轉彎（L 形、之字形）', () => {
+  // 甲乙丙
+  // 丁戊己
+  // 庚辛壬
+  const board = grid('甲乙丙丁戊己庚辛壬');
+  assert.ok(board.pathSpells([0, 1, 2], '甲乙丙'), '橫向直線');
+  assert.ok(board.pathSpells([0, 3, 6], '甲丁庚'), '直向直線');
+  assert.ok(board.pathSpells([0, 1, 4], '甲乙戊'), 'L 形：右 → 下');
+  assert.ok(board.pathSpells([2, 5, 4, 3], '丙己戊丁'), '下 → 左 → 左');
+  assert.ok(board.pathSpells([0, 1, 4, 5, 8], '甲乙戊己壬'), '之字形');
+  assert.ok(board.pathSpells([6, 3, 4, 1], '庚丁戊乙'), '上 → 右 → 上');
+  assert.ok(board.hasWord('甲乙戊己壬'));
+});
+
+test('預設斜角不算相連；同一格不能重複使用；不相鄰不行', () => {
+  const board = grid('甲乙丙丁戊己庚辛壬');
+  assert.ok(!board.pathSpells([0, 4], '甲戊'), '斜角');
+  assert.ok(!board.hasWord('甲戊壬'));
+  assert.ok(!board.pathSpells([0, 2], '甲丙'), '隔一格');
+  assert.ok(!board.pathSpells([0, 1, 0], '甲乙甲'), '重複使用');
+});
+
+test('開啟 diagonal 時斜角也算相連', () => {
+  const board = grid('甲乙丙丁戊己庚辛壬', { diagonal: true });
+  assert.ok(board.pathSpells([0, 4, 8], '甲戊壬'));
+  assert.ok(board.hasWord('甲戊壬'));
 });

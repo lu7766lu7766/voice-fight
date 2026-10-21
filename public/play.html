@@ -63,6 +63,7 @@
         <button id="micBtn" class="ctrl mic">
           <b>🎤</b><small id="micLabel">集氣中…</small>
           <i id="micRing"></i>
+          <i id="micLevel"></i>
         </button>
         <button id="atkBtn" class="ctrl">
           <b>⚔️</b><small>普攻</small>
@@ -76,11 +77,13 @@
   <div id="movesModal" class="modal hidden">
     <div class="sheet">
       <header><h2>我的招式</h2><button class="close" data-close>✕</button></header>
-      <p class="hint">在方塊中找出<b>相連（含斜角）</b>的招式名稱，集氣滿時對著麥克風念出來！<br>✓ 表示目前盤面上找得到。</p>
+      <p class="hint">在方塊中找出<b id="adjHint">上下左右相連（可以轉彎）</b>的招式名稱，集氣滿時對著麥克風念出來！<br>✓ 表示目前盤面上找得到。</p>
       <ul id="movesList" class="moves-list"></ul>
       <div id="statsBox" class="stats-box"></div>
       <div class="extra">
         <p>找不到招式？念「<b>重置</b>」重新洗牌（每場 1 次，剩 <b id="resetLeft">1</b> 次）</p>
+        <label class="switch"><input type="checkbox" id="denoiseToggle" checked> 收音降噪（環境吵雜時建議開啟）</label>
+        <p id="denoiseNote" class="note"></p>
         <label class="switch"><input type="checkbox" id="tapToggle"> 手動點選方塊出招（無法使用麥克風時）</label>
         <button id="tapResetBtn" class="btn small hidden">重置盤面</button>
       </div>

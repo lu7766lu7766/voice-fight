@@ -65,8 +65,46 @@ app.get('/play', (req, res) => res.sendFile(path.join(ROOT, 'public', 'play.html
 
 const rooms = new Map();
 
-function playUrl(code) {
-  return `https://${hostIp()}:${HTTPS_PORT}/play?room=${code}`;
+// ---------- 手機要連的網址 ----------
+// 優先順序：PUBLIC_URL 環境變數 > 本機 ngrok（自動偵測）> 電腦端用公開網址開啟時的網址 > 區網 HTTPS
+const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/+$/, '');
+const NGROK_API = process.env.NGROK_API || 'http://127.0.0.1:4040/api/tunnels';
+let ngrokCache = { at: 0, url: null };
+
+async function ngrokUrl() {
+  if (Date.now() - ngrokCache.at < 3000) return ngrokCache.url;
+  let url = null;
+  try {
+    const res = await fetch(NGROK_API, { signal: AbortSignal.timeout(800) });
+    const { tunnels = [] } = await res.json();
+    // 只採用轉到本伺服器連接埠的通道，https 優先
+    const ours = tunnels.filter(t => {
+      const addr = String((t.config && t.config.addr) || '');
+      return addr.endsWith(':' + HTTP_PORT) || addr.endsWith(':' + HTTPS_PORT) || addr === String(HTTP_PORT);
+    });
+    const pick = ours.find(t => String(t.public_url).startsWith('https://')) || ours[0];
+    if (pick) url = String(pick.public_url).replace(/\/+$/, '');
+  } catch (e) { /* ngrok 沒有在跑 */ }
+  ngrokCache = { at: Date.now(), url };
+  return url;
+}
+
+function isLocalHost(host) {
+  const h = String(host || '').replace(/:\d+$/, '');
+  return !h || h === 'localhost' || /^127\./.test(h) || h === '[::1]' || lanAddresses().some(a => a.address === h);
+}
+
+// socket：電腦端的連線，用來判斷電腦是否用公開網址開啟首頁
+async function publicBase(socket) {
+  if (PUBLIC_URL) return { base: PUBLIC_URL, via: 'PUBLIC_URL' };
+  const ng = await ngrokUrl();
+  if (ng) return { base: ng, via: 'ngrok' };
+  const h = socket && socket.handshake.headers;
+  if (h && !isLocalHost(h['x-forwarded-host'] || h.host)) {
+    const proto = String(h['x-forwarded-proto'] || 'https').split(',')[0];
+    return { base: `${proto}://${h['x-forwarded-host'] || h.host}`, via: 'origin' };
+  }
+  return { base: `https://${hostIp()}:${HTTPS_PORT}`, via: 'lan' };
 }
 
 function createRoom() {
@@ -77,12 +115,14 @@ function createRoom() {
   return room;
 }
 
-async function hostPayload(room) {
-  const url = playUrl(room.code);
+async function hostPayload(room, socket) {
+  const { base, via } = await publicBase(socket);
+  const url = `${base}/play?room=${room.code}`;
   const qr = await QRCode.toDataURL(url, { margin: 1, width: 360, color: { dark: '#2b1b0e', light: '#fff8e8' } });
+  socket.data.hostBase = base;
   return {
-    code: room.code, url, qr,
-    alternatives: lanAddresses().map(a => `https://${a.address}:${HTTPS_PORT}/play?room=${room.code}`),
+    code: room.code, url, qr, via,
+    alternatives: via === 'lan' ? lanAddresses().slice(1).map(a => `https://${a.address}:${HTTPS_PORT}/play?room=${room.code}`) : [],
     room: room.roomInfo()
   };
 }
@@ -98,7 +138,7 @@ io.on('connection', socket => {
     if (!room) room = createRoom();
     socket.join('host:' + room.code);
     socket.data.hostOf = room.code;
-    socket.emit('host:room', await hostPayload(room));
+    socket.emit('host:room', await hostPayload(room, socket));
   }));
 
   socket.on('host:new', safe(async () => {
@@ -106,7 +146,7 @@ io.on('connection', socket => {
     const room = createRoom();
     socket.join('host:' + room.code);
     socket.data.hostOf = room.code;
-    socket.emit('host:room', await hostPayload(room));
+    socket.emit('host:room', await hostPayload(room, socket));
   }));
 
   // ----- 手機端 -----
@@ -136,6 +176,18 @@ io.on('connection', socket => {
   socket.on('disconnect', safe(() => { if (socket.data.room) socket.data.room.disconnect(socket); }));
 });
 
+// ngrok 啟動或網址改變時，自動更新電腦畫面上的 QR Code
+setInterval(async () => {
+  for (const socket of io.sockets.sockets.values()) {
+    const code = socket.data.hostOf;
+    if (!code || !rooms.has(code)) continue;
+    try {
+      const { base } = await publicBase(socket);
+      if (base !== socket.data.hostBase) socket.emit('host:room', await hostPayload(rooms.get(code), socket));
+    } catch (e) { console.error(e); }
+  }
+}, 4000);
+
 // 遊戲主迴圈
 setInterval(() => {
   const now = Date.now();
@@ -157,8 +209,10 @@ httpServer.listen(HTTP_PORT, () => {
     console.log('');
     console.log('  ⚔  聲控對戰 Voice Fight 伺服器已啟動');
     console.log(`  電腦開啟：  http://localhost:${HTTP_PORT}`);
-    console.log(`  手機連線：  https://${ip}:${HTTPS_PORT}/play （掃描電腦畫面上的 QR Code）`);
-    console.log('  首次連線手機會出現憑證警告，請選擇「繼續前往」以允許麥克風。');
+    console.log(`  手機連線：  掃描電腦畫面上的 QR Code`);
+    console.log(`  使用 ngrok：另開終端機執行  ngrok http ${HTTP_PORT}  ，QR Code 會自動換成 ngrok 網址`);
+    console.log(`  （或用 PUBLIC_URL=https://你的網址 npm start 指定）`);
+    console.log(`  區網直連：  https://${ip}:${HTTPS_PORT}/play （自簽憑證，首次需選「繼續前往」）`);
     console.log('');
   });
 });

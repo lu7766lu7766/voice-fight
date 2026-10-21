@@ -16,7 +16,8 @@
     $('#code').textContent = d.code;
     $('#qr').src = d.qr;
     $('#url').textContent = d.url;
-    $('#alts').textContent = d.alternatives.length > 1 ? '其他網路位址：' + d.alternatives.slice(1).join('  ') : '';
+    const via = { ngrok: '（透過 ngrok）', PUBLIC_URL: '（公開網址）', origin: '', lan: '（區網直連・首次需略過憑證警告）' }[d.via] || '';
+    $('#alts').textContent = via + (d.alternatives.length ? '  其他網路位址：' + d.alternatives.join('  ') : '');
     renderRoom(d.room);
   });
 
