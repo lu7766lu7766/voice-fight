@@ -69,20 +69,23 @@
   const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+  // 持續聆聽：開啟後一直收音，辨識器結束就自動重開（不用按住麥克風）。
+  // iOS 只允許在使用者點擊時啟動收音，所以第一次要由點擊（例如「確定角色」）呼叫 enable()；
+  // 之後若 iOS 拒絕自動重開，needTap 會變成 true，畫面請玩家再點一下。
   class Voice {
     constructor({ onResult, onState, lang = 'zh-TW' }) {
       this.supported = !!SR && window.isSecureContext !== false;
       this.isIOS = IS_IOS;
-      this.onResult = onResult; // (alts: string[], isFinal: boolean)
-      this.onState = onState;   // ('listening' | 'idle' | 'error', msg)
+      this.onResult = onResult; // (alts: string[], isFinal: boolean, key: string)
+      this.onState = onState;   // ('listening' | 'paused' | 'needtap' | 'error', msg)
       this.lang = lang;
       this.rec = null;
-      this.session = 0;         // 每次收音一個編號，舊辨識器遲來的事件一律忽略
+      this.session = 0;         // 每個辨識器一個編號，舊辨識器遲來的事件一律忽略
+      this.wanted = false;      // 玩家是否開著聆聽
       this.active = false;
-      this.starting = false;
-      this.wantStop = false;
-      this.lastInterim = '';
-      this.timers = [];
+      this.needTap = false;
+      this.quickEnds = 0;       // 連續「很快就結束」的次數，用來避免無限重開
+      this.restartTimer = 0;
       this.denoise = lsGet('vf-denoise') !== '0';
       // undefined = 尚未偵測；true / false = 是否支援 start(audioTrack)。iOS Safari 不支援
       this.trackSupport = IS_IOS || lsGet(LS_NOTRACK) === '1' ? false : undefined;
@@ -94,98 +97,101 @@
       this.denoise = on;
       lsSet('vf-denoise', on ? '1' : '0');
       if (!on) this.pipe.close();
+      if (this.wanted) this.restart(0);
     }
 
-    // 目前是否真的走降噪管線
     get denoiseActive() { return this.denoise && this.trackSupport === true; }
 
-    later(fn, ms) { this.timers.push(setTimeout(fn, ms)); }
-    clearTimers() { this.timers.forEach(clearTimeout); this.timers = []; }
+    // 開始持續聆聽（請在點擊事件裡呼叫）
+    enable() {
+      if (!this.supported) return;
+      this.wanted = true;
+      this.needTap = false;
+      this.quickEnds = 0;
+      if (!this.active) this.startNow();
+    }
+
+    // 暫停聆聽
+    disable() {
+      this.wanted = false;
+      clearTimeout(this.restartTimer);
+      this.discard();
+      this.onState('paused');
+    }
 
     makeRec(id) {
       const rec = new SR();
       rec.lang = this.lang;
       rec.interimResults = true;
-      // 按住期間持續收音、停頓也不中斷；iOS Safari 的連續模式在第一句之後就不再回傳結果，所以關掉
-      rec.continuous = !IS_IOS;
+      rec.continuous = true;
       rec.maxAlternatives = 5;
       let gotResult = false;
+      const startedAt = performance.now();
       const mine = () => id === this.session;
       rec.onstart = () => {
         if (!mine()) return;
-        this.active = true; this.starting = false;
+        this.active = true;
         this.onState('listening');
-        if (this.wantStop) this.stop();
       };
       rec.onresult = e => {
         if (!mine()) return;
         gotResult = true;
+        this.quickEnds = 0;
         for (let i = e.resultIndex; i < e.results.length; i++) {
           const r = e.results[i];
           const alts = [];
           for (let k = 0; k < r.length; k++) if (r[k].transcript) alts.push(r[k].transcript.trim());
-          if (!alts.length) continue;
-          if (!r.isFinal) {
-            if (alts[0] === this.lastInterim) continue;
-            this.lastInterim = alts[0];
-          }
-          this.onResult(alts, r.isFinal);
+          if (alts.length) this.onResult(alts, r.isFinal, id + ':' + i);
         }
       };
       rec.onerror = e => {
         if (!mine()) return;
-        // 降噪管線在這台裝置上不可用時，記住並退回一般收音
         if (this.usingPipe && !gotResult && (e.error === 'audio-capture' || e.error === 'service-not-allowed' || e.error === 'bad-grammar')) {
+          // 降噪管線在這台裝置上不可用：記住並改用一般收音
           this.trackSupport = false;
           lsSet(LS_NOTRACK, '1');
           this.pipe.close();
-          this.finish('error', '此裝置不支援降噪收音，已改用一般收音，請再按一次');
           return;
         }
-        const msg = {
-          'not-allowed': '請允許麥克風權限',
-          'service-not-allowed': IS_IOS ? '請到「設定 > Siri」開啟 Siri 與聽寫' : '此瀏覽器不允許語音辨識',
-          'no-speech': '沒有聽到聲音',
-          'network': '語音辨識需要網路連線',
-          'audio-capture': '找不到麥克風'
-        }[e.error];
-        if (e.error !== 'aborted') this.finish('error', msg || ('語音錯誤：' + e.error));
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+          // iOS 不允許在非點擊時機重開，或權限被拒
+          this.needTap = true;
+          this.onState('needtap', e.error === 'service-not-allowed' && IS_IOS ? '請到「設定 > Siri」開啟 Siri 與聽寫' : '點一下恢復聆聽');
+          return;
+        }
+        if (e.error === 'no-speech' || e.error === 'aborted') return; // 持續聆聽時的正常狀況
+        const msg = { 'network': '語音辨識需要網路連線', 'audio-capture': '找不到麥克風' }[e.error];
+        this.onState('error', msg || ('語音錯誤：' + e.error));
       };
-      rec.onend = () => { if (mine()) this.finish('idle'); };
+      rec.onend = () => {
+        if (!mine()) return;
+        this.active = false;
+        this.rec = null;
+        if (!this.wanted || this.needTap) return;
+        // 很快就結束（例如 iOS 拒絕在背景啟動）連續好幾次，就改請玩家點一下
+        if (!gotResult && performance.now() - startedAt < 1500) this.quickEnds++;
+        else this.quickEnds = 0;
+        if (this.quickEnds >= 4) { this.needTap = true; this.onState('needtap', '點一下恢復聆聽'); return; }
+        this.restart(this.quickEnds ? 400 * this.quickEnds : 150);
+      };
       return rec;
     }
 
-    // 結束目前這次收音（不論辨識器有沒有正常回報 onend）
-    finish(state, msg, silent) {
-      this.clearTimers();
-      const wasActive = (this.active || this.starting) && !silent;
-      this.session++; // 之後這個辨識器的任何事件都不理會
-      this.active = false; this.starting = false; this.wantStop = false;
-      this.rec = null; this.lastInterim = '';
-      if (wasActive || state === 'error') this.onState(state, msg);
+    restart(ms) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = setTimeout(() => {
+        if (!this.wanted || this.needTap) return;
+        this.discard();
+        this.startNow();
+      }, ms);
     }
 
-    // 丟掉舊的辨識器（Safari 常常 stop/abort 之後不回報 onend，舊狀態會卡住）
-    discard(silent) {
-      const rec = this.rec;
-      if (rec) {
-        rec.onstart = rec.onresult = rec.onerror = rec.onend = null;
-        try { rec.abort(); } catch (e) { /* ignore */ }
-      }
-      this.finish('idle', null, silent);
-    }
-
-    async start() {
-      if (!this.supported) return;
-      // 每次按下都開一個全新的辨識器
-      if (this.rec || this.active || this.starting) this.discard(true);
+    async startNow() {
+      if (!this.supported || !this.wanted) return;
+      this.discard();
       const id = ++this.session;
-      this.starting = true;
-      this.wantStop = false;
       this.usingPipe = false;
       const rec = this.rec = this.makeRec(id);
-      // 看門狗：辨識器一直沒有開始（iOS 偶爾會發生）就放棄，下次按會重開
-      this.later(() => { if (id === this.session && this.starting && !this.active) { this.discard(); this.onState('error', '麥克風沒有回應，請再按一次'); } }, 3000);
       try {
         if (this.denoise && this.trackSupport !== false) {
           if (this.trackSupport === undefined) {
@@ -208,28 +214,37 @@
           }
           if (id !== this.session) return;
         }
-        if (this.wantStop) { this.finish('idle'); return; }
         if (this.usingPipe) rec.start(this.pipe.track); else rec.start();
       } catch (err) {
-        if (id === this.session) this.finish('error', '無法啟動麥克風');
+        if (id !== this.session) return;
+        this.rec = null;
+        this.needTap = true;
+        this.onState('needtap', '點一下恢復聆聽');
       }
     }
 
-    stop() {
-      if (this.starting && !this.active) { this.wantStop = true; return; }
-      if (!this.rec) return;
-      const id = this.session;
-      try { this.rec.stop(); } catch (e) { /* ignore */ }
-      // 保險：一段時間內沒收到 onend 就強制結束，避免下一次按不動
-      this.later(() => { if (id === this.session) this.discard(); }, 1500);
+    // 丟掉目前的辨識器（Safari 常常 stop/abort 之後不回報 onend，所以不等它）
+    discard() {
+      const rec = this.rec;
+      this.session++;
+      this.rec = null;
+      this.active = false;
+      if (rec) {
+        rec.onstart = rec.onresult = rec.onerror = rec.onend = null;
+        try { rec.abort(); } catch (e) { /* ignore */ }
+      }
     }
-
-    abort() { if (this.rec || this.active || this.starting) this.discard(); }
 
     level() { return this.usingPipe && this.pipe.ready ? this.pipe.level() : 0; }
 
-    // 離開對戰時釋放麥克風
-    release() { this.abort(); this.pipe.close(); }
+    // 離開對戰時停止聆聽並釋放麥克風
+    release() {
+      this.wanted = false;
+      this.needTap = false;
+      clearTimeout(this.restartTimer);
+      this.discard();
+      this.pipe.close();
+    }
   }
 
   window.Voice = Voice;

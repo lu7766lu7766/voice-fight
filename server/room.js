@@ -96,7 +96,8 @@ class Room {
     }
     if (this.phase === 'countdown') { this.phase = 'lobby'; this.game = null; }
     if (this.phase !== 'battle') {
-      this.players.forEach(q => { if (q) q.rematch = false; });
+      // 有人離開後，留下的人要重新確定角色（避免新對手一確定就直接開戰）
+      this.players.forEach(q => { if (q) { q.rematch = false; if (this.phase === 'lobby') q.charId = null; } });
     }
     // 只剩一人時，留在房內的玩家移到左邊（先進房者）
     if (!this.players[0] && this.players[1] && this.phase === 'lobby') {
@@ -120,6 +121,15 @@ class Room {
     this.maybeStart();
   }
 
+  // 取消已確定的角色（玩家改點其他角色查看時）
+  unpick(slot) {
+    if (this.phase !== 'lobby') return;
+    const p = this.players[slot];
+    if (!p || !p.charId) return;
+    p.charId = null;
+    this.broadcastRoom();
+  }
+
   maybeStart() {
     if (this.phase === 'lobby' && this.players.every(q => q && q.charId && q.connected)) this.startCountdown();
   }
@@ -141,11 +151,12 @@ class Room {
     const p = this.players[slot];
     if (!p) return;
     p.rematch = true;
-    if (this.players.every(q => q && q.rematch)) {
+    // 對手已離開房間時，按「再來一局」直接回到選角畫面等新對手
+    if (this.players.every(q => !q || q.rematch)) {
       // 回到選角畫面重新選（選好即自動開戰）
       this.phase = 'lobby';
       this.game = null;
-      this.players.forEach(q => { q.charId = null; q.rematch = false; });
+      this.players.forEach(q => { if (q) { q.charId = null; q.rematch = false; } });
     }
     this.broadcastRoom();
   }

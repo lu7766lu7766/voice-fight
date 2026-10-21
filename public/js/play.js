@@ -109,7 +109,8 @@
       card.innerHTML = `<canvas width="180" height="190"></canvas><div class="nm">${ch.name}</div><div class="tt">${ch.title}</div>`;
       card.addEventListener('click', () => {
         if (!S.info || S.info.phase !== 'lobby') return;
-        // 點選只是查看能力，按「確定」才送出
+        // 點選只是查看能力，按「確定」才送出；已確定後改點別的角色，就取消原本的確定
+        if (S.pick && ch.id !== S.pick) socket.emit('unpick');
         S.preview = ch.id;
         portraitAnim[ch.id] = { name: 'select', start: performance.now(), dur: 600 };
         renderLobby();
@@ -186,7 +187,7 @@
       st.textContent = '點選角色查看能力，按「確定」送出，雙方都確定後自動開戰';
     } else if (S.preview !== S.pick) {
       btn.disabled = false; btn.textContent = `確定選擇 ${byId[S.preview].name}`;
-      st.textContent = S.pick ? `目前已確定：${byId[S.pick].name}（可以改選）` : '看完能力後按「確定」送出';
+      st.textContent = opp && opp.charId ? '對手已確定，看完能力後按「確定」送出就開戰' : '看完能力後按「確定」送出';
     } else {
       btn.disabled = true; btn.classList.add('done'); btn.textContent = `✓ 已確定 ${byId[S.pick].name}`;
       if (opp && opp.charId) { st.textContent = '雙方就緒，即將開戰！'; st.classList.add('go'); }
@@ -196,9 +197,28 @@
 
   $('#confirmBtn').addEventListener('click', () => {
     if (!S.preview || !S.info || S.info.phase !== 'lobby') return;
-    unlockAudio();
+    // 在這次點擊裡開始持續聆聽（iOS 只允許點擊時啟動收音），倒數期間聽到的話會忽略
+    if (voice.supported && !S.tapMode) { S.listenWanted = true; voice.enable(); }
     socket.emit('pick', { charId: S.preview });
   });
+
+  // ---------- 離開房間 ----------
+  function leaveRoom() {
+    const inBattle = S.battle && S.info && (S.info.phase === 'battle' || S.info.phase === 'countdown');
+    if (inBattle && !confirm('對戰中離開會判定落敗，確定要離開房間嗎？')) return;
+    socket.emit('leave');
+    voice.release();
+    S.room = null; S.slot = -1; S.info = null; S.battle = null; S.started = false;
+    S.pick = null; S.preview = null; detailFor = null;
+    $('#charDetail').innerHTML = '';
+    setMovesOpen(false);
+    hideResult();
+    history.replaceState(null, '', '/play');
+    $('#roomInput').value = '';
+    $('#joinMsg').textContent = '';
+    show('join');
+  }
+  document.querySelectorAll('[data-leave]').forEach(b => b.addEventListener('click', leaveRoom));
 
   // ---------- 對戰 ----------
   socket.on('battle', b => {
@@ -211,6 +231,7 @@
     const chars = b.chars.map(id => byId[id]);
     scene.setFighters(chars);
     buildHud(chars);
+    applyCharColors();
     show('battle');
     renderState(b.state);
     setTapMode(S.tapMode || !voice.supported);
@@ -243,7 +264,9 @@
     board.dropIn(d.board);
     setAdjHint(d.board);
     renderState(d.state);
-    setSpeech(voice.supported && !S.tapMode ? '集氣滿後，按住 🎤 念出招式！' : '點選相連方塊組成招式，再點一次最後一格出招', '');
+    setSpeech(S.tapMode || !voice.supported ? '點選相連方塊組成招式，再點一次最後一格出招'
+      : voice.wanted && !voice.needTap ? '🎤 持續聆聽中，集氣滿後直接念出招式！' : '點一下 🎤 開始聆聽', '');
+    updateMicLabel();
   });
 
   function setAdjHint(snap) {
@@ -310,23 +333,25 @@
     const mic = $('#micBtn');
     mic.classList.toggle('full', full && !S.tapMode);
     $('#micRing').style.width = (me.gauge / S.battle.gaugeMax * 100) + '%';
-    if (!voice.active) $('#micLabel').textContent = micIdleLabel(full);
+    updateMicLabel();
     $('#resetLeft').textContent = me.resets;
     updateHint(full, me.avail || []);
   }
 
-  // 招式上色：盤面上拼得出自己的招式時，那幾格染成該招式的顏色（只在自己的手機）
-  function recolorMoves() {
+  // 招式字上色：自己招式裡的每個字都有該招式的顏色（只在自己的手機）
+  function applyCharColors() {
     const colors = new Map();
-    if (S.battle && S.started) {
-      const me = byId[S.battle.chars[S.slot]];
-      for (const m of me.moves) {
-        for (const path of board.findAllPathIds(m.name)) for (const id of path) if (!colors.has(id)) colors.set(id, m.color);
+    if (S.battle) {
+      for (const m of byId[S.battle.chars[S.slot]].moves) {
+        for (const ch of m.name) {
+          const list = colors.get(ch) || [];
+          if (!list.includes(m.color)) list.push(m.color);
+          colors.set(ch, list);
+        }
       }
     }
-    board.setMoveColors(colors);
+    board.setCharColors(colors);
   }
-  board.onChange = recolorMoves;
 
   // 集氣滿了一段時間還沒出招，就讓盤面上一組自己的招式方塊閃爍（只在自己的手機）
   const HINT_DELAY_MS = 3000;
@@ -343,9 +368,17 @@
     if (hintWord) { hintWord = null; board.setHint(null); }
   }
 
-  function micIdleLabel(full) {
-    if (S.tapMode) return board.selection.length ? '出招：' + board.selectedWord() : '點選方塊';
-    return full ? '集氣滿！按住念' : '按住念招式';
+  function updateMicLabel() {
+    const mic = $('#micBtn');
+    let label;
+    if (S.tapMode) label = board.selection.length ? '出招：' + board.selectedWord() : '點選方塊';
+    else if (!voice.supported) label = '不支援語音';
+    else if (voice.needTap) label = '點一下恢復聆聽';
+    else if (voice.wanted) label = S.gaugeFull ? '集氣滿！直接念招式' : '聆聽中（點一下暫停）';
+    else label = '點一下開始聆聽';
+    $('#micLabel').textContent = label;
+    mic.classList.toggle('listening', !S.tapMode && voice.wanted && !voice.needTap);
+    mic.classList.toggle('needtap', !S.tapMode && voice.needTap);
   }
 
   socket.on('state', st => { if (S.battle) renderState(st); });
@@ -400,21 +433,23 @@
   }
 
   function onVoiceState(state, msg) {
-    const mic = $('#micBtn');
-    mic.classList.toggle('listening', state === 'listening');
+    updateMicLabel();
     if (state === 'listening') {
-      $('#micLabel').textContent = '聆聽中…';
-      setSpeech('🎤 請念出招式名稱…' + (voice.usingPipe ? '（降噪中）' : ''), 'listen');
       meterLoop();
-    }
-    else {
-      $('#micLabel').textContent = micIdleLabel(S.gaugeFull);
-      if (state === 'error') setSpeech(msg, 'bad');
-      // 還按著麥克風、也還沒出招成功，辨識卻自己結束了（例如靜音逾時）→ 自動重新開始收音
-      // （iOS 不能在非點擊的時機啟動收音，所以不自動重開）
-      if (state === 'idle' && micHeld && !castOk && S.started && !voice.isIOS) setTimeout(() => { if (micHeld && !voice.active) voice.start(); }, 120);
+      if (S.started && !$('#speechText').textContent.startsWith('聽到')) setSpeech('🎤 持續聆聽中，直接念出招式' + (voice.usingPipe ? '（降噪中）' : ''), 'listen');
+    } else if (state === 'needtap') {
+      setSpeech(msg || '點一下恢復聆聽', 'bad');
+    } else if (state === 'paused') {
+      setSpeech('聆聽已暫停，點一下 🎤 繼續', '');
+    } else if (state === 'error') {
+      setSpeech(msg, 'bad');
     }
   }
+
+  // iOS 拒絕自動重開收音時，玩家在畫面任何地方點一下就恢復
+  document.addEventListener('pointerdown', e => {
+    if (S.listenWanted && voice.needTap && !e.target.closest('#micBtn')) { voice.enable(); updateMicLabel(); }
+  }, true);
 
   // 收音時在麥克風按鈕上顯示音量；綠色代表噪音閘判定為人聲
   function meterLoop() {
@@ -436,21 +471,26 @@
   }
   $('#denoiseToggle').addEventListener('change', e => { voice.setDenoise(e.target.checked); renderDenoise(); });
 
-  function onVoiceResult(alts, isFinal) {
-    if (Date.now() < S.speechLockUntil) return;
-    const heard = alts[0];
-    setSpeech(`聽到：<span class="heard">「${escapeHtml(heard)}」</span>`, '');
+  // 持續聆聽時，同一段辨識結果會越來越長（iOS 甚至會把整段話累積在一起），
+  // 已經用來出招的部分要剪掉，避免同一句話重複觸發
+  const consumed = new Map(); // 結果編號 → 已用掉的字數
+  let lastSent = null;
+  function onVoiceResult(alts, isFinal, key) {
+    if (!S.started || S.tapMode) return; // 倒數期間聽到的話不算
+    const cut = consumed.get(key) || 0;
+    const trimmed = alts.map(a => a.slice(Math.min(cut, a.length)).trim());
+    const heard = trimmed[0];
+    if (!heard) return;
+    if (Date.now() >= S.speechLockUntil) setSpeech(`聽到：<span class="heard">「${escapeHtml(heard)}」</span>`, '');
     if (!isFinal && heard.replace(/\s/g, '').length < 2) return;
-    socket.emit('speech', { alts, interim: !isFinal });
-    // 輕點模式（沒有按住）：聽到一句完整的話就結束收音
-    if (isFinal && !micHeld) scheduleStop(300);
+    lastSent = { key, len: alts[0].length };
+    socket.emit('speech', { alts: trimmed, interim: !isFinal });
   }
 
   socket.on('speechResult', r => {
     if (r.ok) {
       S.speechLockUntil = Date.now() + 900;
-      castOk = true;
-      voice.abort();
+      if (lastSent) consumed.set(lastSent.key, lastSent.len);
       setSpeech(`<span class="ok">✓ ${escapeHtml(r.word)}！</span>`, '');
     } else if (Date.now() >= S.speechLockUntil) {
       setSpeech(`聽到「${escapeHtml(r.heard || '')}」 <span class="bad">✗ ${escapeHtml(r.msg || '')}</span>`, '');
@@ -460,32 +500,16 @@
 
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-  // 麥克風按鈕：按住說話、放開後再多收 0.7 秒（避免最後一個字被切掉）；
-  // 輕點一下則持續收音，聽到一句話或 6 秒後自動結束
-  let micDownAt = 0, micHeld = false, castOk = false, stopTimer = 0;
-  function scheduleStop(ms) { clearTimeout(stopTimer); stopTimer = setTimeout(() => voice.stop(), ms); }
+  // 麥克風按鈕：持續聆聽的開關（不用按住）
   const mic = $('#micBtn');
   mic.addEventListener('pointerdown', e => {
     e.preventDefault();
-    if (!S.started) { toast('開戰後才能出招'); return; }
-    if (S.tapMode) { board.submit(); return; }
+    if (S.tapMode) { if (S.started) board.submit(); return; }
     if (!voice.supported) { toast('此瀏覽器不支援語音辨識，請改用手動點選'); return; }
-    if (voice.active && !micHeld) { clearTimeout(stopTimer); voice.stop(); return; }
-    clearTimeout(stopTimer);
-    micDownAt = Date.now();
-    micHeld = true;
-    castOk = false;
-    S.speechLockUntil = 0;
-    if (!voice.active) voice.start();
+    if (voice.wanted && !voice.needTap) { S.listenWanted = false; voice.disable(); }
+    else { S.listenWanted = true; voice.enable(); }
+    updateMicLabel();
   });
-  const micUp = () => {
-    if (S.tapMode || !micHeld) return;
-    micHeld = false;
-    const held = Date.now() - micDownAt;
-    scheduleStop(held > 400 ? 700 : 6000);
-  };
-  mic.addEventListener('pointerup', micUp);
-  mic.addEventListener('pointercancel', micUp);
   mic.addEventListener('contextmenu', e => e.preventDefault());
 
   // ---------- 招式表 ----------
@@ -523,26 +547,16 @@
     board.setTapMode(on);
     $('#micBtn').classList.toggle('tapmode', on);
     $('#micBtn b').textContent = on ? '👆' : '🎤';
-    $('#micLabel').textContent = micIdleLabel(S.gaugeFull);
+    updateMicLabel();
   }
   $('#tapToggle').addEventListener('change', e => setTapMode(e.target.checked));
   $('#tapResetBtn').addEventListener('click', () => { socket.emit('tapReset'); setMovesOpen(false); });
   board.onSubmit = path => socket.emit('tapMove', { path });
   board.onSelect = word => {
     if (!S.tapMode) return;
-    $('#micLabel').textContent = micIdleLabel(S.gaugeFull);
+    updateMicLabel();
     if (word) setSpeech(`選取：<span class="heard">${escapeHtml(word)}</span>（再點最後一格或按 👆 出招）`, '');
   };
-
-  // iOS 需要使用者互動後才能播放震動/音效，這裡順便預熱語音權限
-  let unlocked = false;
-  function unlockAudio() {
-    if (unlocked) return;
-    unlocked = true;
-    if (voice.supported && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
-    }
-  }
 
   // ---------- 初始化 ----------
   buildGrid();

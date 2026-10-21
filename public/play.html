@@ -29,6 +29,7 @@
     <section id="lobby" class="screen">
       <header class="lobby-head">
         <div>房間 <b id="lbRoom">----</b></div>
+        <button class="btn-leave" data-leave>離開房間</button>
       </header>
       <div id="opponent" class="opp"></div>
       <div class="lobby-body">
@@ -65,7 +66,7 @@
           <b id="movesIcon">📜</b><small id="movesLabel">招式表</small>
         </button>
         <button id="micBtn" class="ctrl mic">
-          <b>🎤</b><small id="micLabel">集氣中…</small>
+          <b>🎤</b><small id="micLabel">點一下開始聆聽</small>
           <i id="micRing"></i>
           <i id="micLevel"></i>
         </button>
@@ -86,6 +87,7 @@
         <p id="denoiseNote" class="note"></p>
         <label class="switch"><input type="checkbox" id="tapToggle"> 手動點選方塊出招（無法使用麥克風時）</label>
         <button id="tapResetBtn" class="btn small hidden">重置盤面</button>
+        <button class="btn-leave wide" data-leave>離開房間（對戰中離開判定落敗）</button>
       </div>
     </div>
   </div>
@@ -96,6 +98,7 @@
       <h2 id="resultTitle">勝利</h2>
       <p id="resultSub"></p>
       <button id="rematchBtn" class="btn gold big">再來一局</button>
+      <button class="btn-leave wide" data-leave>離開房間</button>
     </div>
   </div>
 

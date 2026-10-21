@@ -38,7 +38,6 @@
         snap.cells.forEach(([id, ch], idx) => this.createCell(id, ch, idx));
         this.clearSelection();
       });
-      this.changed();
     }
 
     clear() {
@@ -75,7 +74,6 @@
           res();
         }, last + 650);
       }));
-      this.changed();
     }
 
     // 洗牌：全部翻轉換字
@@ -88,7 +86,6 @@
           res();
         }, 350);
       }));
-      this.changed();
     }
 
     setBoardNow(snap, flip) {
@@ -112,6 +109,7 @@
       this.el.appendChild(el);
       const c = { el, idx, ch, id };
       this.cells.set(id, c);
+      this.paint(c);
       return c;
     }
 
@@ -135,7 +133,6 @@
           setTimeout(res, 330);
         }, glowMs + 220);
       }));
-      this.changed();
     }
 
     applyFall(snap) {
@@ -152,7 +149,7 @@
         if (c) {
           c.idx = idx;
           c.el.style.transform = this.pos(idx);
-          if (c.ch !== ch) { c.ch = ch; c.el.querySelector('span').textContent = ch; c.el.classList.add('swap'); }
+          if (c.ch !== ch) { c.ch = ch; c.el.querySelector('span').textContent = ch; c.el.classList.add('swap'); this.paint(c); }
         } else {
           const row = Math.floor(idx / cols);
           const n = this.createCell(id, ch, idx, row - newPerCol[idx % cols] - 0.3);
@@ -171,38 +168,24 @@
       for (const c of this.cells.values()) c.el.style.transform = this.pos(c.idx);
     }
 
-    // 盤面變動（動畫結束）後通知外部，例如重新幫招式上色
-    changed() {
-      this.queue = this.queue.then(() => { if (this.onChange) this.onChange(); });
+    // 招式字上色：colors 為 Map(字 → [顏色…])。只要是自己招式裡的字就上色，
+    // 同一個字出現在好幾個招式時，方塊會分成多色
+    setCharColors(colors) {
+      this.charColors = colors;
+      for (const c of this.cells.values()) this.paint(c);
     }
 
-    // 找出盤面上拼出 word 的所有路徑（每條為格子 id 陣列），最多 limit 條
-    findAllPathIds(word, limit = 6) {
-      const snap = this.snapshot;
-      if (!snap) return [];
-      const chars = [...word], n = snap.cells.length, used = new Array(n).fill(false), path = [], out = [];
-      const dfs = (i, k) => {
-        if (out.length >= limit || used[i] || snap.cells[i][1] !== chars[k]) return;
-        used[i] = true; path.push(i);
-        if (k === chars.length - 1) out.push(path.map(idx => snap.cells[idx][0]));
-        else for (let j = 0; j < n; j++) if (!used[j] && this.adjacent(i, j)) dfs(j, k + 1);
-        used[i] = false; path.pop();
-      };
-      for (let i = 0; i < n && out.length < limit; i++) dfs(i, 0);
-      return out;
-    }
-
-    // 招式上色：colors 為 Map(格子 id → 顏色)，不在 Map 裡的格子恢復原色
-    setMoveColors(colors) {
-      for (const c of this.cells.values()) {
-        const col = colors.get(c.id);
-        c.el.classList.toggle('mv', !!col);
-        if (col) {
-          c.el.style.setProperty('--mc', col);
-          c.el.style.setProperty('--mcl', mix(col, 0.78));
-          c.el.style.setProperty('--mcm', mix(col, 0.5));
-        }
-      }
+    paint(c) {
+      const cols = (this.charColors && this.charColors.get(c.ch)) || [];
+      c.el.classList.toggle('mv', cols.length > 0);
+      if (!cols.length) return;
+      const light = cols.map(col => mix(col, 0.62));
+      let bg;
+      if (cols.length === 1) bg = `linear-gradient(160deg, ${mix(cols[0], 0.82)}, ${light[0]} 70%, ${mix(cols[0], 0.4)})`;
+      else if (cols.length === 2) bg = `linear-gradient(135deg, ${light[0]} 0 50%, ${light[1]} 50% 100%)`;
+      else bg = `conic-gradient(${light.map((l, k) => `${l} ${k / light.length * 360}deg ${(k + 1) / light.length * 360}deg`).join(', ')})`;
+      c.el.style.setProperty('--mbg', bg);
+      c.el.style.setProperty('--mc', cols[0]);
     }
 
     // 找出盤面上拼出 word 的一條路徑（回傳格子 id），找不到回傳 null

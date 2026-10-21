@@ -164,6 +164,7 @@ io.on('connection', socket => {
   const inRoom = fn => safe((...args) => { const r = socket.data.room; if (r) fn(r, ...args); });
 
   socket.on('pick', inRoom((r, d = {}) => r.pick(socket.data.slot, String(d.charId))));
+  socket.on('unpick', inRoom(r => r.unpick(socket.data.slot)));
   socket.on('speech', inRoom((r, d = {}) => r.speech(socket, Array.isArray(d.alts) ? d.alts.map(String) : [], !!d.interim)));
   socket.on('tapMove', inRoom((r, d = {}) => r.tapMove(socket, d.path)));
   socket.on('tapReset', inRoom(r => r.tapReset(socket)));
