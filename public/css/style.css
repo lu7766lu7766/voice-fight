@@ -49,9 +49,6 @@ button { font-family: inherit; }
 #lobby { background: linear-gradient(#2b1c3e, var(--ink)); }
 .lobby-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; padding-top: max(10px, env(safe-area-inset-top)); font-size: 15px; }
 .lobby-head b { color: var(--gold); font-size: 20px; letter-spacing: 2px; }
-.side-tag { padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; }
-.side-tag.s0 { background: var(--left); color: #04213f; }
-.side-tag.s1 { background: var(--right); color: #3f0a04; }
 .opp { margin: 0 14px; padding: 8px 12px; border-radius: 10px; background: rgba(255, 255, 255, .06); font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
 .opp b { color: var(--text); }
 .opp .ok { color: #6dffa0; font-weight: 900; }

@@ -77,9 +77,6 @@
   socket.on('joined', d => {
     S.slot = d.slot;
     $('#lbRoom').textContent = d.room;
-    const tag = $('#lbSide');
-    tag.textContent = d.slot === 0 ? '你在左方（先進房）' : '你在右方（後進房）';
-    tag.className = 'side-tag s' + d.slot;
   });
 
   socket.on('room', info => {
