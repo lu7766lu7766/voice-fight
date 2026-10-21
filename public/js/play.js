@@ -398,7 +398,8 @@
       $('#micLabel').textContent = micIdleLabel(S.gaugeFull);
       if (state === 'error') setSpeech(msg, 'bad');
       // 還按著麥克風、也還沒出招成功，辨識卻自己結束了（例如靜音逾時）→ 自動重新開始收音
-      if (state === 'idle' && micHeld && !castOk && S.started) setTimeout(() => { if (micHeld && !voice.active) voice.start(); }, 120);
+      // （iOS 不能在非點擊的時機啟動收音，所以不自動重開）
+      if (state === 'idle' && micHeld && !castOk && S.started && !voice.isIOS) setTimeout(() => { if (micHeld && !voice.active) voice.start(); }, 120);
     }
   }
 
