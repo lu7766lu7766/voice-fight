@@ -77,7 +77,7 @@
       this.supported = !!SR && window.isSecureContext !== false;
       this.isIOS = IS_IOS;
       this.onResult = onResult; // (alts: string[], isFinal: boolean, key: string)
-      this.onState = onState;   // ('listening' | 'paused' | 'needtap' | 'error', msg)
+      this.onState = onState;   // ('listening' | 'needtap' | 'error', msg)
       this.lang = lang;
       this.rec = null;
       this.session = 0;         // 每個辨識器一個編號，舊辨識器遲來的事件一律忽略
@@ -86,18 +86,11 @@
       this.needTap = false;
       this.quickEnds = 0;       // 連續「很快就結束」的次數，用來避免無限重開
       this.restartTimer = 0;
-      this.denoise = lsGet('vf-denoise') !== '0';
+      this.denoise = true;      // 降噪管線一律開啟（切換會重開收音，有些手機重開後收不到音）
       // undefined = 尚未偵測；true / false = 是否支援 start(audioTrack)。iOS Safari 不支援
       this.trackSupport = IS_IOS || lsGet(LS_NOTRACK) === '1' ? false : undefined;
       this.pipe = new MicPipeline();
       this.usingPipe = false;
-    }
-
-    setDenoise(on) {
-      this.denoise = on;
-      lsSet('vf-denoise', on ? '1' : '0');
-      if (!on) this.pipe.close();
-      if (this.wanted) this.restart(0);
     }
 
     get denoiseActive() { return this.denoise && this.trackSupport === true; }
@@ -109,14 +102,6 @@
       this.needTap = false;
       this.quickEnds = 0;
       if (!this.active) this.startNow();
-    }
-
-    // 暫停聆聽
-    disable() {
-      this.wanted = false;
-      clearTimeout(this.restartTimer);
-      this.discard();
-      this.onState('paused');
     }
 
     makeRec(id) {

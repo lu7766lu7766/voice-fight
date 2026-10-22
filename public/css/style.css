@@ -186,7 +186,6 @@ button { font-family: inherit; }
 .cd-tip { margin: 0; font-size: 16px; color: var(--text); font-family: var(--sans); }
 #boardCover .btn { font-size: 17px; }
 .cell.drop { transition: transform .5s cubic-bezier(.3, 0, .45, 1.2); }
-#controls.locked .mic { opacity: .45; }
 
 #controls { flex: none; display: grid; grid-template-columns: 1fr 2.2fr; gap: 10px; padding: 8px 12px; padding-bottom: max(10px, env(safe-area-inset-bottom)); background: #1a1126; border-top: 1px solid #3a2a52; }
 .ctrl {
@@ -197,16 +196,16 @@ button { font-family: inherit; }
 .ctrl b { font-size: 24px; line-height: 1; position: relative; z-index: 1; }
 .ctrl small { font-size: 12px; font-weight: 700; position: relative; z-index: 1; }
 .ctrl:active { transform: translateY(2px); box-shadow: 0 1px 0 #120b1a; }
-.mic { background: linear-gradient(#5a3f80, #3a2858); }
-.mic.full { background: linear-gradient(#ffe08a, #f2a51a); color: #3a1d00; box-shadow: 0 3px 0 #7a4e0f, 0 0 18px rgba(255, 200, 70, .7); animation: pulse 1s ease-in-out infinite; }
-.mic.listening { background: linear-gradient(#7fd3ff, #2f7fd0); color: #001a33; animation: none; box-shadow: 0 0 0 4px rgba(127, 211, 255, .35), 0 0 22px rgba(127, 211, 255, .8); }
-.mic.listening.full { background: linear-gradient(#ffe08a, #f2a51a); color: #3a1d00; box-shadow: 0 3px 0 #7a4e0f, 0 0 18px rgba(255, 200, 70, .7); animation: pulse 1s ease-in-out infinite; }
-.mic.needtap { background: linear-gradient(#ffb199, #e8590c); color: #2b0e00; animation: pulse .8s ease-in-out infinite; box-shadow: 0 0 18px rgba(255, 120, 60, .8); }
-.mic.tapmode { background: linear-gradient(#8a6bb0, #5a3f80); }
-#micRing { position: absolute; left: 0; bottom: 0; height: 5px; background: linear-gradient(90deg, #3a7bd5, #7fd3ff); width: 0; transition: width .12s linear; }
-.mic.full #micRing { display: none; }
-#micLevel { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background: linear-gradient(0deg, rgba(255, 255, 255, .45), rgba(255, 255, 255, 0)); transform-origin: bottom; transform: scaleY(0); transition: transform .06s linear; pointer-events: none; }
-.mic.voice #micLevel { background: linear-gradient(0deg, rgba(120, 255, 170, .7), rgba(120, 255, 170, 0)); }
+.gauge-panel {
+  position: relative; height: 64px; border-radius: 16px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  background: #120b1a; border: 2px solid #3a2a52; box-shadow: inset 0 2px 6px rgba(0, 0, 0, .5);
+}
+#gaugeFill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #2f6fc0, #7fd3ff); transition: width .12s linear; }
+#gaugeText { position: relative; font-size: 17px; font-weight: 900; letter-spacing: 1px; text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+.gauge-panel.full { border-color: #ffe08a; box-shadow: 0 0 18px rgba(255, 200, 70, .7); animation: pulse 1s ease-in-out infinite; }
+.gauge-panel.full #gaugeFill { background: linear-gradient(90deg, #ffb52e, #fff1a8, #ffb52e); background-size: 200% 100%; animation: shimmer 1s linear infinite; }
+.gauge-panel.full #gaugeText { color: #3a1d00; text-shadow: 0 1px 0 rgba(255, 255, 255, .6); }
+#controls.locked .gauge-panel { opacity: .45; }
 .note { font-size: 12px; color: #8a7a9a; margin: -4px 0 8px 28px; }
 @keyframes pulse { 50% { transform: scale(1.04); } }
 

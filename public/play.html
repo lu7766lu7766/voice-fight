@@ -65,11 +65,10 @@
         <button id="movesBtn" class="ctrl">
           <b id="movesIcon">📜</b><small id="movesLabel">招式表</small>
         </button>
-        <button id="micBtn" class="ctrl mic">
-          <b>🎤</b><small id="micLabel">點一下開始聆聽</small>
-          <i id="micRing"></i>
-          <i id="micLevel"></i>
-        </button>
+        <div id="gaugePanel" class="gauge-panel">
+          <i id="gaugeFill"></i>
+          <span id="gaugeText">集氣 0%</span>
+        </div>
       </div>
     </section>
   </div>
@@ -83,8 +82,6 @@
       <div id="statsBox" class="stats-box"></div>
       <div class="extra">
         <p>找不到招式？念「<b>重置</b>」重新洗牌（每場 1 次，剩 <b id="resetLeft">1</b> 次）</p>
-        <label class="switch"><input type="checkbox" id="denoiseToggle" checked> 收音降噪（環境吵雜時建議開啟）</label>
-        <p id="denoiseNote" class="note"></p>
         <label class="switch"><input type="checkbox" id="tapToggle"> 手動點選方塊出招（無法使用麥克風時）</label>
         <button id="tapResetBtn" class="btn small hidden">重置盤面</button>
         <button class="btn-leave wide" data-leave>離開房間（對戰中離開判定落敗）</button>
