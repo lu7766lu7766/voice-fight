@@ -43,6 +43,36 @@
     "u": 0.25,
     "ax": 195.6
    }
+  },
+  "linger": {
+   "attack": {
+    "src": "img/chars/linger/attack.webp",
+    "w": 508,
+    "h": 533,
+    "u": 0.25,
+    "ax": 238.4
+   },
+   "hurt": {
+    "src": "img/chars/linger/hurt.webp",
+    "w": 485,
+    "h": 533,
+    "u": 0.25,
+    "ax": 238.4
+   },
+   "idle": {
+    "src": "img/chars/linger/idle.webp",
+    "w": 486,
+    "h": 533,
+    "u": 0.25,
+    "ax": 238.4
+   },
+   "win": {
+    "src": "img/chars/linger/win.webp",
+    "w": 439,
+    "h": 547,
+    "u": 0.25,
+    "ax": 238.4
+   }
   }
  },
  "fx": {},
