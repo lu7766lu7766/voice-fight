@@ -14,7 +14,9 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--ink); color: var(--text); font-family: var(--sans); }
-body.phone { overflow: hidden; overscroll-behavior: none; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+body.phone { overflow: hidden; overscroll-behavior: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-text-size-adjust: 100%; }
+/* iOS 會忽略 user-scalable=no：每個元素都設 manipulation，點兩下才不會放大 */
+html, body.phone, body.phone * { touch-action: manipulation; }
 button { font-family: inherit; }
 
 .btn {

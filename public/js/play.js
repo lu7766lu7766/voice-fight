@@ -5,6 +5,21 @@
   const TYPE_LABEL = { atk: '攻擊', multi: '連擊', heal: '回復', drain: '吸血', dot: '持續', buff: '增益', debuff: '減益' };
   const STAT_MAX = { hp: 1100, spi: 80, spd: 80, luck: 80, def: 80 };
 
+  // ---------- 防止畫面縮放 ----------
+  // iOS Safari 不理會 viewport 的 user-scalable=no，要自己擋雙指縮放和點兩下放大
+  for (const t of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(t, e => e.preventDefault(), { passive: false });
+  document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - lastTouchEnd < 350 && !e.target.closest('input, textarea, select')) {
+      e.preventDefault();          // 擋掉第二下觸發的放大
+      e.target.click();            // 但點擊照常生效（快速連點按鈕不會被吃掉）
+    }
+    lastTouchEnd = now;
+  }, { passive: false });
+
   // ---------- 狀態 ----------
   const S = {
     room: null, slot: -1, info: null,
