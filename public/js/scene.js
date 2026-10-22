@@ -73,7 +73,7 @@
       const s = ev.slot, f = this.fighters[s];
       if (!f) return;
       const melee = SceneFX.MELEE.includes(ev.fx);
-      this.playAnim(s, 'cast', 1150, { melee });
+      this.playAnim(s, 'cast', 1150, { melee, img: SceneFX.POSE[ev.fx] });
       const now = performance.now();
       this.banners.push({ text: ev.name, slot: s, start: now, dur: 1400, color: SIDE_COLORS[s] });
       const fx = SceneFX.moves[ev.fx] || SceneFX.moves.default;

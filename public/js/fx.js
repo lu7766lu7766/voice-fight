@@ -718,7 +718,11 @@
     // 御劍：劍在手邊凝聚靈光，化作流光飛劍貫穿敵人
     swordbeam(t0, a, b, f) {
       const col = '#7fc8ff', dir = this.dirTo(a, b);
-      const start = () => { const h = this.hand(a); return { x: h.x, y: h.y - 30 * this.scale }; };
+      // 有施法立繪時，劍懸在往前伸的劍訣指尖前方
+      const empty = Sprites.hasPose(f.look.id, 'cast');
+      const start = () => empty
+        ? { x: this.baseX(a) + dir * 78 * this.scale, y: this.groundY - 84 * this.scale }
+        : (h => ({ x: h.x, y: h.y - 30 * this.scale }))(this.hand(a));
       this.burst(t0 + 150, start, 16, { kind: 'glow', speed: [40, 80], life: [350, 500], size: [1.5, 3], color: col, to: start(), pull: 18, drag: 1 });
       this.addFx(t0 + 200, 300, (ctx, t) => {
         const p = start();
@@ -736,6 +740,12 @@
       });
       this.impact(t0 + IMPACT, b, col, 1.1);
       this.burst(t0 + IMPACT, () => this.body(b), 10, { kind: 'spark', angle: dir > 0 ? [-0.5, 0.5] : [Math.PI - 0.5, Math.PI + 0.5], speed: [300, 520], life: [200, 350], size: 2, color: '#d6efff', drag: 3 });
+      // 施法立繪是空手劍訣：命中後飛劍迴旋飛回手上
+      if (empty) this.addFx(t0 + IMPACT + 30, 250, (ctx, t) => {
+        const A = this.body(b), B = this.hand(a), u = easeOut(t);
+        const x = A.x + (B.x - A.x) * u, y = A.y + (B.y - A.y) * u - Math.sin(Math.PI * u) * 36 * this.scale;
+        this.sword(ctx, x, y, dir * t * TAU * 1.5, 56, col, 1 - 0.4 * t, 0.4);
+      });
     },
 
     // 劍氣斬：揮劍劈出巨大的青色月牙劍氣，貼地飛馳斬過敵人
@@ -1607,5 +1617,7 @@
 
   // 近身招式：施放者會衝到對手面前
   const MELEE = ['whip', 'whipmulti', 'crack', 'cleave'];
-  window.SceneFX = { kit, moves, MELEE, IMPACT };
+  // 出招時改用的立繪動作（角色沒有這張圖時退回 attack）
+  const POSE = { swordbeam: 'cast', swords: 'cast_up', aura: 'cast_up' };
+  window.SceneFX = { kit, moves, MELEE, POSE, IMPACT };
 })();

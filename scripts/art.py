@@ -6,7 +6,7 @@
       python3 scripts/art.py --ground 0.84   （指定背景圖地面高度，0~1 由上往下）
 
 原始圖放法：
-  art/raw/chars/<角色id>/idle.png    待機（必要）
+  art/raw/chars/<角色id>/idle.png    待機（必要），也可以直接放 art/<角色id>/idle.png
   art/raw/chars/<角色id>/attack.png  出招
   art/raw/chars/<角色id>/hurt.png    受傷
   art/raw/chars/<角色id>/win.png     勝利
@@ -24,9 +24,11 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
-RAW = Path(os.environ.get('ART_RAW', ROOT / 'art' / 'raw'))
+ART = ROOT / 'art'
+RAW = Path(os.environ.get('ART_RAW', ART / 'raw'))
 OUT = ROOT / 'public' / 'img'
 EXTS = ('.png', '.jpg', '.jpeg', '.webp')
+CHAR_IDS = ('xiaoyao', 'linger', 'yueru', 'anu', 'jingchou', 'yuer')
 
 CHAR_CANVAS_H = 600     # 原圖整張畫布縮放成的高度（px），同一角色每張圖用同樣比例
 CHAR_UNITS = 150        # 整張畫布高度相當於幾個遊戲單位（角色約 130 單位高）
@@ -76,6 +78,10 @@ def cut_out(img, tol=60):
         ImageDraw.floodfill(filled, s, sentinel, thresh=tol)
     a = np.asarray(filled)
     mask = np.all(a == sentinel, axis=2)
+    # 被頭髮、手臂圍起來的背景色空隙（從四周填不到）：同色且不是零星小點的也去掉
+    near = np.abs(np.asarray(rgb).astype(np.int16) - bg).max(axis=2) <= tol
+    holes = Image.fromarray((near * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5))
+    mask |= np.asarray(holes) > 0
     alpha = Image.fromarray(np.where(mask, 0, 255).astype(np.uint8))
     # 邊緣柔化 + 去除背景色溢色
     band = np.asarray(alpha.filter(ImageFilter.MinFilter(5))) < 255
@@ -83,7 +89,9 @@ def cut_out(img, tol=60):
     out = np.asarray(rgb).astype(np.int16).copy()
     if bg[1] > bg[0] + 60 and bg[1] > bg[2] + 60:  # 綠幕
         r, g, b = out[:, :, 0], out[:, :, 1], out[:, :, 2]
-        g[band] = np.minimum(g[band], np.maximum(r[band], b[band]))
+        # 邊緣一律去綠；內部只處理明顯是綠幕殘留的小點（綠遠大於紅藍）
+        spill = band | (g > 2 * np.maximum(r, b) + 40)
+        g[spill] = np.minimum(g[spill], np.maximum(r[spill], b[spill]))
     rgba = np.dstack([out.clip(0, 255).astype(np.uint8), np.asarray(alpha)])
     return Image.fromarray(rgba, 'RGBA')
 
@@ -97,34 +105,49 @@ def rel(path):
     return path.relative_to(ROOT / 'public').as_posix()
 
 
-def do_chars(manifest):
-    base = RAW / 'chars'
-    if not base.exists():
-        return
-    for d in sorted(p for p in base.iterdir() if p.is_dir()):
+def char_files(cid):
+    """art/raw/chars/<id>/ 和 art/<id>/ 都可以放，同一個動作兩邊都有時以 art/raw/ 為準。"""
+    files = {f.stem: f for f in find(ART / cid)}
+    files.update({f.stem: f for f in find(RAW / 'chars' / cid)})
+    return [files[k] for k in sorted(files)]
+
+
+def do_chars(manifest, prev):
+    for cid in CHAR_IDS:
         poses = {}
-        for f in find(d):
+        for f in char_files(cid):
             img = Image.open(f)
             k = CHAR_CANVAS_H / img.height
             img = cut_out(img)
             img = img.resize((round(img.width * k), CHAR_CANVAS_H), Image.LANCZOS)
             box = img.getchannel('A').point(lambda v: 255 if v > 24 else 0).getbbox()
             if not box:
-                print(f'  ! {f} 去背後是空的，略過')
+                print(f'  ! {f.relative_to(ROOT)} 去背後是空的，略過')
                 continue
             img = img.crop(box)
-            # 腳底中心：最下面 8% 的不透明像素平均 x
+            # 腳底中心：最下面 8% 的不透明像素平均 x（換算回原畫布座標）
             a = np.asarray(img.getchannel('A')) > 128
             rows = a[int(a.shape[0] * 0.92):]
             xs = np.nonzero(rows)[1]
-            ax = float(xs.mean()) if len(xs) else img.width / 2
-            out = OUT / 'chars' / d.name / (f.stem + '.webp')
+            foot = box[0] + (float(xs.mean()) if len(xs) else img.width / 2)
+            out = OUT / 'chars' / cid / (f.stem + '.webp')
             save_webp(img, out)
-            poses[f.stem] = {'src': rel(out), 'w': img.width, 'h': img.height, 'ax': round(ax, 1),
+            poses[f.stem] = {'src': rel(out), 'w': img.width, 'h': img.height, 'left': box[0], 'foot': foot,
                              'u': round(CHAR_UNITS / CHAR_CANVAS_H, 4)}
-            print(f'  角色 {d.name}/{f.stem}: {img.width}x{img.height}')
+            print(f'  角色 {cid}/{f.stem}: {img.width}x{img.height}')
         if poses:
-            manifest['chars'][d.name] = poses
+            # 同一角色的圖構圖相同，一律用待機圖的腳底位置，抬腳、跨步的動作才不會左右跳
+            base = poses['idle']['foot'] if 'idle' in poses else None
+            for e in poses.values():
+                foot, left = e.pop('foot'), e.pop('left')
+                e['ax'] = round((foot if base is None else base) - left, 1)
+        # 原始圖已經刪掉、但之前處理好的圖還在的動作照樣保留
+        for pose, e in prev.get(cid, {}).items():
+            if pose not in poses and (ROOT / 'public' / e['src']).exists():
+                poses[pose] = e
+                print(f'  角色 {cid}/{pose}: 沒有原始圖，沿用已處理的 {e["src"]}')
+        if poses:
+            manifest['chars'][cid] = dict(sorted(poses.items()))
 
 
 def do_fx(manifest):
@@ -168,6 +191,7 @@ def do_bg(manifest, ground):
 def main():
     ground = 0.85
     old = OUT / 'manifest.json'
+    prev = {}
     if old.exists():
         prev = json.loads(old.read_text(encoding='utf8'))
         if prev.get('bg'):
@@ -175,7 +199,7 @@ def main():
     if '--ground' in sys.argv:
         ground = float(sys.argv[sys.argv.index('--ground') + 1])
     manifest = {'chars': {}, 'fx': {}, 'bg': None}
-    do_chars(manifest)
+    do_chars(manifest, prev.get('chars', {}))
     do_fx(manifest)
     do_bg(manifest, ground)
     OUT.mkdir(parents=True, exist_ok=True)

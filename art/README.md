@@ -5,8 +5,8 @@
 流程：
 
 1. 用下面的提示詞請 Gemini 生圖。
-2. 把原始圖照下表的檔名放進 `art/raw/`（png、jpg、webp 都可以，不用自己去背或裁切）。
-3. 執行 `python3 scripts/art.py`（需要 `pip install pillow numpy`）。腳本會自動去背、裁切、找腳底位置、縮小檔案，並產生 `public/img/manifest.json`。
+2. 把原始圖照下表的檔名放進 `art/raw/`（png、jpg、webp 都可以，不用自己去背或裁切）。角色圖也可以直接放 `art/<角色id>/`，例如 `art/xiaoyao/idle.jpeg`。
+3. 執行 `python3 scripts/art.py`（需要 `pip install pillow numpy`）。腳本會自動去背（包含頭髮、手臂圍住的背景空隙）、裁切、對齊腳底位置、縮小檔案，並產生 `public/img/manifest.json`。同一角色的動作圖以待機圖的腳底位置對齊，所以 4 張圖請用相同構圖。
 4. 重新整理手機頁面就會看到新圖。
 
 ```
@@ -15,6 +15,8 @@ art/raw/
   chars/xiaoyao/attack.png       出招
   chars/xiaoyao/hurt.png         受傷
   chars/xiaoyao/win.png          勝利
+  chars/xiaoyao/cast.png         施法：劍訣前指（選做，御劍用）
+  chars/xiaoyao/cast_up.png      施法：劍訣高舉（選做，萬劍歸宗、天罡戰氣用）
   chars/linger/…   趙靈兒      chars/yueru/…    林月如
   chars/anu/…      阿奴        chars/jingchou/… 陳靖仇
   chars/yuer/…     拓跋玉兒
@@ -22,7 +24,8 @@ art/raw/
   bg.png                         戰鬥背景
 ```
 
-每個角色只有 `idle` 是必要的。其他動作缺圖時，會用 `idle` 加上位移、傾斜和染色代替。
+每個角色只有 `idle` 是必要的。其他動作缺圖時，會用 `idle` 加上位移、傾斜和染色代替；`cast_up` 缺圖時用 `cast`，`cast` 缺圖時用 `attack`。
+原始圖處理完可以刪掉，已經產生在 `public/img/` 的圖會保留。
 
 ---
 
@@ -56,6 +59,8 @@ art/raw/
 | `attack` | 出招瞬間：身體前傾、往右跨步，武器或施法的手大力往右前方揮出，衣襬和頭髮被動作帶起，表情專注吶喊。 |
 | `hurt` | 被擊中的瞬間：身體往後（往左）仰，一隻手護在身前，閉眼皺眉、表情痛苦，頭髮往前甩。 |
 | `win` | 勝利姿勢：開心地笑，一手舉起武器或比出得意的手勢，充滿精神。 |
+| `cast` | （李逍遙）御劍施法：雙手空著、畫面上不要出現劍。右手食指與中指併攏成劍訣，向右前方伸直指出；左手捏劍訣收在胸前，弓步、身體略前傾，頭髮與披風向後吹起。 |
+| `cast_up` | （李逍遙）御劍施法：雙手空著、畫面上不要出現劍。右手劍訣高舉過頭指向右上方，左手捏劍訣在胸前，頭髮與披風被氣流向上揚起。 |
 
 ### 角色描述
 

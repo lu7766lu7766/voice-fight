@@ -1,5 +1,50 @@
 {
- "chars": {},
+ "chars": {
+  "xiaoyao": {
+   "attack": {
+    "src": "img/chars/xiaoyao/attack.webp",
+    "w": 435,
+    "h": 551,
+    "u": 0.25,
+    "ax": 243.6
+   },
+   "cast": {
+    "src": "img/chars/xiaoyao/cast.webp",
+    "w": 405,
+    "h": 551,
+    "u": 0.25,
+    "ax": 195.6
+   },
+   "cast_up": {
+    "src": "img/chars/xiaoyao/cast_up.webp",
+    "w": 422,
+    "h": 551,
+    "u": 0.25,
+    "ax": 234.6
+   },
+   "hurt": {
+    "src": "img/chars/xiaoyao/hurt.webp",
+    "w": 388,
+    "h": 550,
+    "u": 0.25,
+    "ax": 195.6
+   },
+   "idle": {
+    "src": "img/chars/xiaoyao/idle.webp",
+    "w": 388,
+    "h": 550,
+    "u": 0.25,
+    "ax": 195.6
+   },
+   "win": {
+    "src": "img/chars/xiaoyao/win.webp",
+    "w": 437,
+    "h": 555,
+    "u": 0.25,
+    "ax": 195.6
+   }
+  }
+ },
  "fx": {},
  "bg": null
 }

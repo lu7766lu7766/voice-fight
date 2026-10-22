@@ -120,7 +120,8 @@
         }
         p.eyes = tc < 0.42 ? 'closed' : 'normal';
         p.mouth = tc > 0.4 && tc < 0.75 ? 'open' : 'flat';
-        p.img = tc > 0.3 && tc < 0.9 ? 'attack' : 'idle';
+        // 施法立繪雙手空著，提早換圖，對上飛劍在手邊出現的時間，看起來像劍剛離手
+        p.img = tc > (anim.img ? 0.16 : 0.3) && tc < 0.9 ? anim.img || 'attack' : 'idle';
         break;
       }
       case 'hurt': {
@@ -683,8 +684,13 @@
   }
 
   // 以圖片呈現：同一張圖靠位移、傾斜、呼吸縮放與染色做出動態
+  // 缺圖時依序改用的動作
+  const POSE_FALLBACK = { cast_up: 'cast', cast: 'attack', win: 'attack' };
+
   function drawArt(ctx, poses, look, pose, x, y, scale, facing, opts) {
-    const e = poses[pose.img] || (pose.img === 'win' && poses.attack) || poses.idle;
+    let img = pose.img;
+    while (!poses[img] && POSE_FALLBACK[img]) img = POSE_FALLBACK[img];
+    const e = poses[img] || poses.idle;
     const u = e.u;
     ctx.save();
     ctx.translate(x, y);
@@ -738,6 +744,7 @@
 
   window.Sprites = {
     drawFighter, poseFor, drawPortrait, hexA, shade, fxTex,
+    hasPose: (id, pose) => !!(art.chars[id] && art.chars[id][pose]),
     bgArt: () => art.bg, artVersion: () => art.version
   };
 })();
