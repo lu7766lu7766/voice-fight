@@ -1618,6 +1618,6 @@
   // 近身招式：施放者會衝到對手面前
   const MELEE = ['whip', 'whipmulti', 'crack', 'cleave'];
   // 出招時改用的立繪動作（角色沒有這張圖時退回 attack）
-  const POSE = { swordbeam: 'cast', swords: 'cast_up', aura: 'cast_up' };
+  const POSE = { swordbeam: 'cast', swords: 'cast_up', aura: 'cast_up', thunder: 'cast', thunderbig: 'cast' };
   window.SceneFX = { kit, moves, MELEE, POSE, IMPACT };
 })();

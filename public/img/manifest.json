@@ -52,6 +52,13 @@
     "u": 0.25,
     "ax": 238.4
    },
+   "cast": {
+    "src": "img/chars/linger/cast.webp",
+    "w": 528,
+    "h": 588,
+    "u": 0.225,
+    "ax": 264.5
+   },
    "hurt": {
     "src": "img/chars/linger/hurt.webp",
     "w": 485,
@@ -72,6 +79,66 @@
     "h": 547,
     "u": 0.25,
     "ax": 238.4
+   }
+  },
+  "yueru": {
+   "attack": {
+    "src": "img/chars/yueru/attack.webp",
+    "w": 553,
+    "h": 574,
+    "u": 0.2325,
+    "ax": 285.7
+   },
+   "hurt": {
+    "src": "img/chars/yueru/hurt.webp",
+    "w": 462,
+    "h": 557,
+    "u": 0.2325,
+    "ax": 257.7
+   },
+   "idle": {
+    "src": "img/chars/yueru/idle.webp",
+    "w": 440,
+    "h": 543,
+    "u": 0.25,
+    "ax": 239.7
+   },
+   "win": {
+    "src": "img/chars/yueru/win.webp",
+    "w": 402,
+    "h": 562,
+    "u": 0.25,
+    "ax": 239.7
+   }
+  },
+  "anu": {
+   "attack": {
+    "src": "img/chars/anu/attack.webp",
+    "w": 543,
+    "h": 570,
+    "u": 0.25,
+    "ax": 263.9
+   },
+   "hurt": {
+    "src": "img/chars/anu/hurt.webp",
+    "w": 451,
+    "h": 570,
+    "u": 0.25,
+    "ax": 262.9
+   },
+   "idle": {
+    "src": "img/chars/anu/idle.webp",
+    "w": 451,
+    "h": 572,
+    "u": 0.25,
+    "ax": 262.9
+   },
+   "win": {
+    "src": "img/chars/anu/win.webp",
+    "w": 452,
+    "h": 573,
+    "u": 0.25,
+    "ax": 263.9
    }
   }
  },

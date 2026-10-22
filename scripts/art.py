@@ -29,6 +29,8 @@ RAW = Path(os.environ.get('ART_RAW', ART / 'raw'))
 OUT = ROOT / 'public' / 'img'
 EXTS = ('.png', '.jpg', '.jpeg', '.webp')
 CHAR_IDS = ('xiaoyao', 'linger', 'yueru', 'anu', 'jingchou', 'yuer')
+# 補生的動作圖人物大小常和待機圖不同，在這裡修正（< 1 縮小）
+POSE_SCALE = {'linger/cast': 0.90, 'yueru/attack': 0.93, 'yueru/hurt': 0.93}
 
 CHAR_CANVAS_H = 600     # 原圖整張畫布縮放成的高度（px），同一角色每張圖用同樣比例
 CHAR_UNITS = 150        # 整張畫布高度相當於幾個遊戲單位（角色約 130 單位高）
@@ -133,7 +135,7 @@ def do_chars(manifest, prev):
             out = OUT / 'chars' / cid / (f.stem + '.webp')
             save_webp(img, out)
             poses[f.stem] = {'src': rel(out), 'w': img.width, 'h': img.height, 'left': box[0], 'foot': foot,
-                             'u': round(CHAR_UNITS / CHAR_CANVAS_H, 4)}
+                             'u': round(CHAR_UNITS / CHAR_CANVAS_H * POSE_SCALE.get(f'{cid}/{f.stem}', 1), 4)}
             print(f'  角色 {cid}/{f.stem}: {img.width}x{img.height}')
         if poses:
             # 同一角色的圖構圖相同，一律用待機圖的腳底位置，抬腳、跨步的動作才不會左右跳

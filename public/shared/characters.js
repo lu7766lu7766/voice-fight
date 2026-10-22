@@ -41,7 +41,7 @@
       look: {
         skin: '#ffe6d2', hair: '#3b2a5c', hairStyle: 'twinbuns',
         main: '#b77fd6', sub: '#fbe9ff', trim: '#f4c6e6', band: '#7a4fb0',
-        weapon: 'staff', aura: '#e2a8ff'
+        weapon: 'staff', aura: '#e2a8ff', artScale: 0.94
       },
       moves: [
         { name: '雷咒', type: 'atk', color: '#9c36b5', power: 1.0, fx: 'thunder', desc: '召喚落雷轟擊敵人' },
@@ -79,7 +79,7 @@
       look: {
         skin: '#f7d2b0', hair: '#1e1b2e', hairStyle: 'miao',
         main: '#2f6f6a', sub: '#e7f4ef', trim: '#d9dde3', band: '#c0c7d1',
-        weapon: 'bell', aura: '#8ef0a0'
+        weapon: 'bell', aura: '#8ef0a0', artScale: 0.88
       },
       moves: [
         { name: '蠱毒', type: 'dot', color: '#2f9e44', power: 1.15, dur: 6, fx: 'poison', desc: '種下蠱毒，持續 6 秒傷害' },

@@ -691,7 +691,8 @@
     let img = pose.img;
     while (!poses[img] && POSE_FALLBACK[img]) img = POSE_FALLBACK[img];
     const e = poses[img] || poses.idle;
-    const u = e.u;
+    // look.artScale：立繪的身高比例（以林月如為 1）
+    const u = e.u * (look.artScale || 1);
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale * facing, scale);
