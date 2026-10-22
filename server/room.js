@@ -3,7 +3,8 @@
 
 const { Game, C } = require('./game');
 const { rankWords } = require('./speech');
-const { byId, RESET_WORDS } = require('../public/shared/characters');
+const { CHARACTERS, byId, RESET_WORDS } = require('../public/shared/characters');
+const { LEVELS, makeBot } = require('./bot');
 
 const COUNTDOWN_MS = 10000; // 開戰前倒數，期間可以先看招式表
 const DISCONNECT_GRACE_MS = 30000;
@@ -24,7 +25,8 @@ class Room {
   constructor(code, io) {
     this.code = code;
     this.io = io;
-    this.players = [null, null]; // { pid, socketId, connected, charId, rematch, dropTimer }
+    this.players = [null, null]; // { pid, socketId, connected, charId, rematch, dropTimer }，電腦對手另有 bot: 難度
+    this.bots = [];              // 對戰中電腦對手的行動函式
     this.phase = 'lobby';
     this.game = null;
     this.countdownEnd = 0;
@@ -45,7 +47,15 @@ class Room {
     let slot = this.slotOf(pid);
     if (slot < 0) {
       slot = this.players.findIndex(p => !p);
-      if (slot < 0) return { ok: false, reason: '房間已滿（最多兩人）' };
+      // 預設是雙人對戰：還在選角時有真人進房，就取代電腦對手
+      const botSlot = this.players.findIndex(p => p && p.bot);
+      if (slot < 0 && botSlot >= 0 && this.phase === 'lobby') {
+        slot = botSlot;
+        this.players[slot] = null;
+        this.players.forEach(q => { if (q) q.charId = null; });
+        this.emit('notice', { msg: '有玩家進房，改為雙人對戰' });
+      }
+      if (slot < 0) return { ok: false, reason: botSlot >= 0 ? '房間正在與電腦對戰' : '房間已滿（最多兩人）' };
       if (this.phase !== 'lobby') return { ok: false, reason: '對戰進行中，無法加入' };
       this.players[slot] = { pid, charId: null, rematch: false };
     }
@@ -89,6 +99,14 @@ class Room {
     if (this.players[slot] !== p) return;
     clearTimeout(p.dropTimer);
     this.players[slot] = null;
+    // 真人都離開了，電腦對手也一起退場
+    if (this.players.every(q => !q || q.bot)) {
+      this.players = [null, null];
+      this.phase = 'lobby';
+      this.game = null;
+      this.broadcastRoom();
+      return;
+    }
     if (this.phase === 'over') { this.phase = 'lobby'; this.game = null; }
     if (this.phase === 'battle' && this.game && !this.game.over) {
       this.game.finish(1 - slot);
@@ -130,6 +148,40 @@ class Room {
     this.broadcastRoom();
   }
 
+  // 等待對手時改成和電腦對戰（電腦隨機選一個和你不同的角色）
+  setBot(slot, level) {
+    if (this.phase !== 'lobby' || !this.players[slot] || !LEVELS[level]) return;
+    const other = 1 - slot;
+    const q = this.players[other];
+    if (q && !q.bot) return;
+    if (q) q.bot = level;
+    else this.players[other] = { pid: 'bot', bot: level, connected: true, charId: this.botChar(slot), rematch: false };
+    this.broadcastRoom();
+    this.maybeStart();
+  }
+
+  // 換一個電腦角色
+  rerollBot(slot) {
+    const q = this.players[1 - slot];
+    if (this.phase !== 'lobby' || !this.players[slot] || !q || !q.bot) return;
+    q.charId = this.botChar(slot, q.charId);
+    this.broadcastRoom();
+  }
+
+  // 改回等待真人玩家
+  removeBot(slot) {
+    const q = this.players[1 - slot];
+    if (this.phase !== 'lobby' || !this.players[slot] || !q || !q.bot) return;
+    this.players[1 - slot] = null;
+    this.broadcastRoom();
+  }
+
+  botChar(humanSlot, avoid) {
+    const human = this.players[humanSlot];
+    const ids = CHARACTERS.map(c => c.id).filter(id => id !== (human && human.charId) && id !== avoid);
+    return ids[Math.floor(Math.random() * ids.length)];
+  }
+
   maybeStart() {
     if (this.phase === 'lobby' && this.players.every(q => q && q.charId && q.connected)) this.startCountdown();
   }
@@ -142,6 +194,7 @@ class Room {
       now: Date.now(),
       onEvent: (type, payload) => this.onGameEvent(type, payload)
     });
+    this.bots = this.players.map((p, i) => p.bot && makeBot(this.game, i, p.bot)).filter(Boolean);
     this.broadcastRoom();
     this.emit('battle', this.battleInfo());
   }
@@ -151,12 +204,13 @@ class Room {
     const p = this.players[slot];
     if (!p) return;
     p.rematch = true;
+    this.players.forEach(q => { if (q && q.bot) q.rematch = true; });
     // 對手已離開房間時，按「再來一局」直接回到選角畫面等新對手
     if (this.players.every(q => !q || q.rematch)) {
       // 回到選角畫面重新選（選好即自動開戰）
       this.phase = 'lobby';
       this.game = null;
-      this.players.forEach(q => { if (q) { q.charId = null; q.rematch = false; } });
+      this.players.forEach((q, i) => { if (q) { q.charId = q.bot ? this.botChar(1 - i) : null; q.rematch = false; } });
     }
     this.broadcastRoom();
   }
@@ -193,6 +247,7 @@ class Room {
     }
     if (this.phase === 'battle' && this.game) {
       this.game.update(now);
+      this.bots.forEach(act => act(now));
       if (now - this.lastState >= STATE_INTERVAL_MS) {
         this.lastState = now;
         this.emit('state', this.game.state());
@@ -279,7 +334,7 @@ class Room {
       serverNow: Date.now(),
       winner: this.game && this.game.over ? this.game.winner : -1,
       players: this.players.map(p => p && {
-        charId: p.charId, connected: p.connected, rematch: p.rematch
+        charId: p.charId, connected: p.connected, rematch: p.rematch, bot: p.bot || null
       })
     };
   }

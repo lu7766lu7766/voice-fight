@@ -3,6 +3,7 @@
 // 用法：node scripts/balance.js [每組場數]
 
 const { Game } = require('../server/game');
+const { chooseMove } = require('../server/bot');
 const { CHARACTERS } = require('../public/shared/characters');
 
 const N = Number(process.argv[2]) || 400;
@@ -16,17 +17,8 @@ function makeBot(game, slot) {
     if (f.gauge >= 100) {
       if (readyAt === null) readyAt = now + 1500 + Math.random() * 3000;
       if (now >= readyAt) {
-        const avail = game.avail[slot];
-        if (!avail.length) { game.reset(slot); return; }
-        const moves = avail.map(n => f.ch.moves.find(m => m.name === n));
-        const low = f.hp / f.maxHp < 0.55;
-        const heals = moves.filter(m => m.type === 'heal');
-        const useful = moves.filter(m => m.type !== 'heal' && !(m.type === 'buff' && f.buffs.some(b => b.name === m.name)));
-        let pick;
-        if (low && heals.length) pick = heals[0];
-        else if (useful.length) pick = useful[Math.floor(Math.random() * useful.length)];
-        else pick = moves[Math.floor(Math.random() * moves.length)];
-        game.castSkill(slot, pick.name);
+        const pick = chooseMove(game, slot, true);
+        if (pick) game.castSkill(slot, pick.name); else game.reset(slot);
         readyAt = null;
       }
     }

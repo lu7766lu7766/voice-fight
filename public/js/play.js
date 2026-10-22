@@ -4,6 +4,7 @@
   const $ = s => document.querySelector(s);
   const TYPE_LABEL = { atk: '攻擊', multi: '連擊', heal: '回復', drain: '吸血', dot: '持續', buff: '增益', debuff: '減益' };
   const STAT_MAX = { hp: 1100, spi: 80, spd: 80, luck: 80, def: 80 };
+  const BOT_LEVELS = { easy: '簡單', normal: '普通', hard: '困難' };
 
   // ---------- 防止畫面縮放 ----------
   // iOS Safari 不理會 viewport 的 user-scalable=no，要自己擋雙指縮放和點兩下放大
@@ -157,7 +158,9 @@
     const opp = info.players[1 - S.slot];
     // 對手狀態
     const oppEl = $('#opponent');
-    if (!opp) oppEl.innerHTML = '⏳ 等待對手加入房間…';
+    const levels = cur => Object.entries(BOT_LEVELS).map(([k, v]) => `<button class="pill${k === cur ? ' on' : ''}" data-bot="${k}">${v}</button>`).join('');
+    if (!opp) oppEl.innerHTML = `<div class="opp-line">⏳ 等待對手加入房間…</div><div class="opp-bot">或和電腦對戰：${levels()}</div>`;
+    else if (opp.bot) oppEl.innerHTML = `<div class="opp-line">🤖 電腦對手：<b>${byId[opp.charId].name}</b><button class="pill" data-reroll>換角色</button><button class="pill" data-unbot>等真人</button></div><div class="opp-bot">難度：${levels(opp.bot)}</div>`;
     else if (!opp.connected) oppEl.innerHTML = '⚠️ 對手連線中斷，等待重新連線…';
     else if (!opp.charId) oppEl.innerHTML = '對手已加入，正在選擇角色…';
     else oppEl.innerHTML = `對手選擇了 <b>${byId[opp.charId].name}</b> <span class="ok">✓</span>`;
@@ -172,7 +175,7 @@
       if (opp && opp.charId === card.dataset.id) {
         if (!badge) { badge = document.createElement('span'); card.appendChild(badge); }
         badge.className = 'opp-pick s' + (1 - S.slot);
-        badge.textContent = '對手';
+        badge.textContent = opp.bot ? '電腦' : '對手';
       } else if (badge) badge.remove();
     });
 
@@ -202,13 +205,22 @@
       st.textContent = '點選角色查看能力，按「確定」送出，雙方都確定後自動開戰';
     } else if (S.preview !== S.pick) {
       btn.disabled = false; btn.textContent = `確定選擇 ${byId[S.preview].name}`;
-      st.textContent = opp && opp.charId ? '對手已確定，看完能力後按「確定」送出就開戰' : '看完能力後按「確定」送出';
+      st.textContent = opp && opp.charId ? `${opp.bot ? '電腦' : '對手'}已確定，看完能力後按「確定」送出就開戰` : '看完能力後按「確定」送出';
     } else {
       btn.disabled = true; btn.classList.add('done'); btn.textContent = `✓ 已確定 ${byId[S.pick].name}`;
       if (opp && opp.charId) { st.textContent = '雙方就緒，即將開戰！'; st.classList.add('go'); }
       else st.textContent = opp ? '等待對手確定角色…（還可以點其他角色改選）' : '等待對手加入房間…（還可以點其他角色改選）';
     }
   }
+
+  // 等待對手時可以改和電腦對戰（預設是雙人對戰）
+  $('#opponent').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b || !S.info || S.info.phase !== 'lobby') return;
+    if (b.dataset.bot) socket.emit('setBot', { level: b.dataset.bot });
+    else if ('reroll' in b.dataset) socket.emit('rerollBot');
+    else if ('unbot' in b.dataset) socket.emit('removeBot');
+  });
 
   $('#confirmBtn').addEventListener('click', () => {
     if (!S.preview || !S.info || S.info.phase !== 'lobby') return;
