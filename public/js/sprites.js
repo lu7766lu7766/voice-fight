@@ -1,7 +1,48 @@
-// Q 版人物繪製（Canvas 程序化繪圖，無外部圖檔）
+// Q 版人物繪製
+// 有圖檔（public/img/manifest.json 列出的角色圖）就畫圖，否則用 Canvas 程序化繪圖。
 // 座標：原點在腳底中心、面向右方，人物總高約 130 單位。
 (function () {
   const TAU = Math.PI * 2;
+
+  // ---------- 圖檔 ----------
+  // manifest 由 scripts/art.py 產生：
+  //   chars[id][pose] = { src, w, h, ax, u }  ax 腳底中心 x（px）、u 每 px 等於幾個單位
+  //   fx[name] = { src, w, h, blend }         blend 'lighter'（黑底發光圖）或 'source-over'（去背圖）
+  //   bg = { src, w, h, ground }              ground 地面位置（0~1，由上往下）
+  const art = { chars: {}, fx: {}, bg: null, version: 0 };
+  function loadImg(entry, onload) {
+    const img = new Image();
+    img.onload = () => { entry.img = img; art.version++; onload && onload(); };
+    img.src = '/' + entry.src;
+  }
+  if (typeof fetch === 'function' && location.protocol.startsWith('http')) {
+    fetch('/img/manifest.json').then(r => r.ok ? r.json() : null).then(m => {
+      if (!m) return;
+      Object.entries(m.chars || {}).forEach(([id, poses]) => {
+        art.chars[id] = {};
+        Object.entries(poses).forEach(([pose, e]) => loadImg(e, () => { art.chars[id][pose] = e; }));
+      });
+      Object.entries(m.fx || {}).forEach(([name, e]) => loadImg(e, () => { art.fx[name] = e; }));
+      if (m.bg) loadImg(m.bg, () => { art.bg = m.bg; });
+    }).catch(() => {});
+  }
+  if (window.GameData) GameData.CHARACTERS.forEach(c => { c.look.id = c.id; });
+  function fxTex(name) { return art.fx[name] || null; }
+
+  // 染色剪影（受擊閃紅、集氣發光用），依圖片與顏色快取
+  const tintCache = new Map();
+  function tinted(e, color) {
+    const key = e.src + color;
+    if (tintCache.has(key)) return tintCache.get(key);
+    const c = document.createElement('canvas');
+    c.width = e.img.naturalWidth; c.height = e.img.naturalHeight;
+    const g = c.getContext('2d');
+    g.drawImage(e.img, 0, 0);
+    g.globalCompositeOperation = 'source-atop';
+    g.fillStyle = color; g.fillRect(0, 0, c.width, c.height);
+    tintCache.set(key, c);
+    return c;
+  }
 
   // ---------- 小工具 ----------
   function ell(ctx, x, y, rx, ry, rot = 0) {
@@ -35,7 +76,7 @@
       x: 0, y: 0, rot: 0, lean: 0.04, head: 0,
       armF: 0.75, armB: -0.35, legF: 0.22, legB: -0.2,
       wAbs: null, wOff: 1.55, eyes: 'normal', mouth: 'smile',
-      glow: 0, flash: 0, alpha: 1, bow: 0, whip: 0
+      glow: 0, flash: 0, alpha: 1, bow: 0, whip: 0, img: 'idle', breath: 0
     };
     switch (look.weapon) {
       case 'staff': p.armF = 0.55; p.wAbs = Math.PI - 0.12; break;
@@ -52,6 +93,7 @@
     const p = readyPose(look);
     const bob = Math.sin(now / 330) * 1.6;
     p.y = bob; p.head = Math.sin(now / 660) * 0.03;
+    p.breath = Math.sin(now / 330);
     if (!anim) return p;
     const t = Math.max(0, now - anim.start) / anim.dur;
     const tc = Math.min(1, t);
@@ -78,6 +120,7 @@
         }
         p.eyes = tc < 0.42 ? 'closed' : 'normal';
         p.mouth = tc > 0.4 && tc < 0.75 ? 'open' : 'flat';
+        p.img = tc > 0.3 && tc < 0.9 ? 'attack' : 'idle';
         break;
       }
       case 'hurt': {
@@ -86,6 +129,7 @@
         p.armF = lerp(p.armF, 0.1, k); p.armB = lerp(p.armB, -0.9, k);
         p.eyes = tc < 0.8 ? 'hurt' : 'normal'; p.mouth = 'hurt';
         p.flash = Math.max(0, 1 - tc * 1.6);
+        p.img = 'hurt';
         break;
       }
       case 'ko': {
@@ -96,6 +140,7 @@
         p.eyes = 'ko'; p.mouth = 'hurt';
         p.flash = Math.max(0, 1 - t * 2);
         p.wDrop = k;
+        p.img = 'hurt';
         break;
       }
       case 'win': {
@@ -103,6 +148,7 @@
         p.y = -12 * j; p.armF = 2.0 + 0.15 * j; p.armB = 2.6 + 0.2 * j;
         p.legF = 0.35 * j; p.legB = -0.35 * j;
         p.eyes = 'happy'; p.mouth = 'open';
+        p.img = 'win';
         break;
       }
       case 'select': {
@@ -549,18 +595,15 @@
 
   // ---------- 主繪製 ----------
   // facing: 1 向右，-1 向左。scale: 單位→像素
-  function drawFighter(ctx, look, pose, x, y, scale, facing, now) {
+  function drawFighter(ctx, look, pose, x, y, scale, facing, now, opts = {}) {
+    const poses = art.chars[look.id];
+    if (poses && poses.idle) return drawArt(ctx, poses, look, pose, x, y, scale, facing, opts);
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale * facing, scale);
     ctx.globalAlpha = pose.alpha;
 
-    // 影子
-    ctx.save();
-    ctx.globalAlpha *= 0.28;
-    ell(ctx, pose.x, 1, pose.rot ? 44 : 26 - Math.min(10, -pose.y * 0.4), 5);
-    ctx.fillStyle = '#000'; ctx.fill();
-    ctx.restore();
+    if (!opts.noShadow) drawShadow(ctx, pose);
 
     ctx.translate(pose.x, pose.y);
     // 以身體中段為支點旋轉（倒地時整個人留在畫面內）
@@ -631,6 +674,45 @@
     }
   }
 
+  function drawShadow(ctx, pose) {
+    ctx.save();
+    ctx.globalAlpha *= 0.28;
+    ell(ctx, pose.x, 1, pose.rot ? 44 : 26 - Math.min(10, -pose.y * 0.4), 5);
+    ctx.fillStyle = '#000'; ctx.fill();
+    ctx.restore();
+  }
+
+  // 以圖片呈現：同一張圖靠位移、傾斜、呼吸縮放與染色做出動態
+  function drawArt(ctx, poses, look, pose, x, y, scale, facing, opts) {
+    const e = poses[pose.img] || (pose.img === 'win' && poses.attack) || poses.idle;
+    const u = e.u;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale * facing, scale);
+    ctx.globalAlpha *= pose.alpha;
+    if (!opts.noShadow) drawShadow(ctx, pose);
+    ctx.translate(pose.x, pose.y);
+    ctx.translate(0, -45); ctx.rotate(pose.rot); ctx.translate(0, 45);
+    ctx.rotate(pose.lean * 0.45);
+    const sy = 1 + 0.012 * pose.breath, sx = 1 - 0.006 * pose.breath;
+    ctx.scale(sx, sy);
+    const dx = -e.ax * u, dy = -e.h * u, dw = e.w * u, dh = e.h * u;
+    if (pose.glow > 0.01) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha *= 0.35 * pose.glow;
+      const k = 1.06;
+      ctx.drawImage(tinted(e, look.aura), dx * k, dy * k + dh * (k - 1) * 0.5, dw * k, dh * k);
+      ctx.restore();
+    }
+    ctx.drawImage(e.img, dx, dy, dw, dh);
+    if (pose.flash > 0) {
+      ctx.globalAlpha *= 0.65 * pose.flash;
+      ctx.drawImage(tinted(e, '#ff4a3a'), dx, dy, dw, dh);
+    }
+    ctx.restore();
+  }
+
   function drawTalisman(ctx, hand, now) {
     const [hx, hy] = hand;
     ctx.save(); ctx.translate(hx, hy - 4); ctx.rotate(Math.sin(now / 300) * 0.1);
@@ -654,5 +736,8 @@
     drawFighter(ctx, look, poseFor(look, anim, now), w / 2 - 4 * scale, h - 8 * scale, scale, 1, now);
   }
 
-  window.Sprites = { drawFighter, poseFor, drawPortrait, hexA, shade };
+  window.Sprites = {
+    drawFighter, poseFor, drawPortrait, hexA, shade, fxTex,
+    bgArt: () => art.bg, artVersion: () => art.version
+  };
 })();

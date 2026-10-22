@@ -1,5 +1,6 @@
 // 角色與招式資料（伺服器與瀏覽器共用）
-// 角色造型原型參考：仙劍奇俠傳一、軒轅劍外傳 天之痕 等 2D Q 版人物，名稱與美術皆為原創。
+// 角色取自《仙劍奇俠傳》與《軒轅劍外傳 天之痕》（課堂教學用的同人作品）。
+// 若 public/img 下有該角色的圖檔就用圖片呈現，否則退回 sprites.js 的程式繪圖。
 (function (root) {
   // 招式類型：
   //  atk    單段傷害            power
@@ -13,10 +14,10 @@
   // color: 招式專屬顏色，盤面上拼得出這個招式時，方塊會染成這個顏色（同一角色的 5 招顏色都不同）
   const CHARACTERS = [
     {
-      id: 'lingfeng',
-      name: '凌風',
+      id: 'xiaoyao',
+      name: '李逍遙',
       title: '御劍少俠',
-      origin: '原型：仙劍一・李逍遙',
+      origin: '仙劍奇俠傳',
       stats: { hp: 1065, spi: 64, spd: 55, luck: 50, def: 50 },
       look: {
         skin: '#ffe0c4', hair: '#4a2c1a', hairStyle: 'spiky',
@@ -25,17 +26,17 @@
       },
       moves: [
         { name: '御劍', type: 'atk', color: '#1971c2', power: 1.0, fx: 'swordbeam', desc: '以氣御劍，飛劍直取敵人' },
-        { name: '劍氣斬', type: 'atk', color: '#0c8599', power: 1.35, fx: 'slash', desc: '凝聚劍氣，橫斬一擊' },
-        { name: '醉仙步', type: 'buff', color: '#2f9e44', stat: 'spd', amount: 0.8, dur: 10, refund: 35, fx: 'wind', desc: '立即回氣 35，身法 +80%（10 秒）' },
+        { name: '劍氣斬', type: 'atk', color: '#0c8599', power: 1.35, fx: 'swordqi', desc: '凝聚劍氣，橫斬一擊' },
+        { name: '醉仙步', type: 'buff', color: '#2f9e44', stat: 'spd', amount: 0.8, dur: 10, refund: 35, fx: 'drunkstep', desc: '立即回氣 35，身法 +80%（10 秒）' },
         { name: '天罡戰氣', type: 'buff', color: '#f08c00', stat: 'atk', amount: 0.35, dur: 10, fx: 'aura', desc: '靈力 +35%（10 秒）' },
         { name: '萬劍歸宗', type: 'multi', color: '#9c36b5', power: 1.65, hits: 5, fx: 'swords', desc: '萬劍齊落，五段傷害' }
       ]
     },
     {
-      id: 'lingyue',
-      name: '靈月',
+      id: 'linger',
+      name: '趙靈兒',
       title: '女媧後裔',
-      origin: '原型：仙劍一・趙靈兒',
+      origin: '仙劍奇俠傳',
       stats: { hp: 915, spi: 72, spd: 52, luck: 52, def: 44 },
       look: {
         skin: '#ffe6d2', hair: '#3b2a5c', hairStyle: 'twinbuns',
@@ -44,17 +45,17 @@
       },
       moves: [
         { name: '雷咒', type: 'atk', color: '#9c36b5', power: 1.0, fx: 'thunder', desc: '召喚落雷轟擊敵人' },
-        { name: '冰心訣', type: 'heal', color: '#d6336c', power: 1.05, fx: 'heal', desc: '心如止水，回復氣血' },
+        { name: '冰心訣', type: 'heal', color: '#d6336c', power: 1.05, fx: 'icelotus', desc: '心如止水，回復氣血' },
         { name: '天雷破', type: 'atk', color: '#f08c00', power: 1.35, fx: 'thunderbig', desc: '天降巨雷，威力強大' },
-        { name: '五氣朝元', type: 'heal', color: '#2f9e44', power: 1.55, fx: 'healbig', desc: '五氣歸元，大量回復氣血' },
+        { name: '五氣朝元', type: 'heal', color: '#2f9e44', power: 1.55, fx: 'fiveqi', desc: '五氣歸元，大量回復氣血' },
         { name: '冰封千里', type: 'debuff', color: '#1971c2', stat: 'spd', amount: -0.35, dur: 7, power: 1.3, fx: 'ice', desc: '冰封敵人，傷害並降低身法 35%' }
       ]
     },
     {
-      id: 'hongling',
-      name: '紅綾',
-      title: '鞭影俠女',
-      origin: '原型：仙劍一・林月如',
+      id: 'yueru',
+      name: '林月如',
+      title: '林家堡千金',
+      origin: '仙劍奇俠傳',
       stats: { hp: 970, spi: 64, spd: 56, luck: 45, def: 50 },
       look: {
         skin: '#ffe0c8', hair: '#2a1a14', hairStyle: 'ponytail',
@@ -70,10 +71,10 @@
       ]
     },
     {
-      id: 'aman',
-      name: '阿蠻',
-      title: '苗疆蠱女',
-      origin: '原型：仙劍一・阿奴',
+      id: 'anu',
+      name: '阿奴',
+      title: '苗疆少女',
+      origin: '仙劍奇俠傳',
       stats: { hp: 980, spi: 56, spd: 60, luck: 66, def: 44 },
       look: {
         skin: '#f7d2b0', hair: '#1e1b2e', hairStyle: 'miao',
@@ -84,15 +85,15 @@
         { name: '蠱毒', type: 'dot', color: '#2f9e44', power: 1.15, dur: 6, fx: 'poison', desc: '種下蠱毒，持續 6 秒傷害' },
         { name: '噬魂', type: 'drain', color: '#e03131', power: 1.0, fx: 'drain', desc: '吞噬魂魄，傷害並吸取一半氣血' },
         { name: '銀鈴咒', type: 'debuff', color: '#0c8599', stat: 'spd', amount: -0.4, dur: 8, power: 0.7, fx: 'bells', desc: '傷害並降低對手身法 40%' },
-        { name: '百草回春', type: 'heal', color: '#d6336c', power: 1.45, fx: 'healbig', desc: '苗疆秘藥，大量回復氣血' },
+        { name: '百草回春', type: 'heal', color: '#d6336c', power: 1.45, fx: 'herbs', desc: '苗疆秘藥，大量回復氣血' },
         { name: '萬蠱蝕天', type: 'dot', color: '#9c36b5', power: 1.7, dur: 6, fx: 'swarm', desc: '萬蠱齊出，持續 6 秒重創' }
       ]
     },
     {
-      id: 'jingyuan',
-      name: '靖遠',
+      id: 'jingchou',
+      name: '陳靖仇',
       title: '符劍少年',
-      origin: '原型：天之痕・陳靖仇',
+      origin: '軒轅劍外傳 天之痕',
       stats: { hp: 1040, spi: 60, spd: 48, luck: 46, def: 62 },
       look: {
         skin: '#ffe0c4', hair: '#20160f', hairStyle: 'topknot',
@@ -101,17 +102,17 @@
       },
       moves: [
         { name: '符火', type: 'atk', color: '#e03131', power: 1.0, fx: 'firetalisman', desc: '火符飛射，焚燒敵人' },
-        { name: '破軍斬', type: 'atk', color: '#f08c00', power: 1.35, fx: 'slash', desc: '破軍之勢，劈斬敵陣' },
+        { name: '破軍斬', type: 'atk', color: '#f08c00', power: 1.35, fx: 'cleave', desc: '破軍之勢，劈斬敵陣' },
         { name: '鎮妖符', type: 'debuff', color: '#9c36b5', stat: 'atk', amount: -0.3, dur: 8, power: 0.7, fx: 'talisman', desc: '傷害並降低對手靈力 30%' },
         { name: '真元護體', type: 'buff', color: '#1971c2', stat: 'def', amount: 0.6, dur: 10, fx: 'shield', desc: '防禦 +60%（10 秒）' },
-        { name: '雷霆萬鈞', type: 'atk', color: '#0c8599', power: 1.6, fx: 'thunderbig', desc: '雷霆之力，萬鈞一擊' }
+        { name: '雷霆萬鈞', type: 'atk', color: '#0c8599', power: 1.6, fx: 'judgement', desc: '雷霆之力，萬鈞一擊' }
       ]
     },
     {
       id: 'yuer',
-      name: '玉兒',
-      title: '草原神箭',
-      origin: '原型：天之痕・拓跋玉兒',
+      name: '拓跋玉兒',
+      title: '鮮卑公主',
+      origin: '軒轅劍外傳 天之痕',
       stats: { hp: 990, spi: 57, spd: 62, luck: 54, def: 46 },
       look: {
         skin: '#f6d3b3', hair: '#5a2f1b', hairStyle: 'furhat',
@@ -119,7 +120,7 @@
         weapon: 'bow', aura: '#9ff2e5'
       },
       moves: [
-        { name: '風行', type: 'buff', color: '#2f9e44', stat: 'spd', amount: 0.8, dur: 10, refund: 35, fx: 'wind', desc: '立即回氣 35，身法 +80%（10 秒）' },
+        { name: '風行', type: 'buff', color: '#2f9e44', stat: 'spd', amount: 0.8, dur: 10, refund: 35, fx: 'gale', desc: '立即回氣 35，身法 +80%（10 秒）' },
         { name: '狼嘯', type: 'debuff', color: '#f08c00', stat: 'def', amount: -0.3, dur: 8, power: 0.7, fx: 'howl', desc: '傷害並降低對手防禦 30%' },
         { name: '穿雲箭', type: 'atk', color: '#0c8599', power: 1.35, fx: 'arrow', desc: '一箭穿雲，直取要害' },
         { name: '連珠箭', type: 'multi', color: '#d6336c', power: 1.4, hits: 3, fx: 'arrows', desc: '箭如連珠，三段傷害' },

@@ -8,7 +8,7 @@ function duel(levelA, levelB, seed = 1) {
   let s = seed;
   const rand = () => ((s = (s * 16807) % 2147483647) / 2147483647);
   let casts = [0, 0];
-  const game = new Game({ charIds: ['lingfeng', 'aman'], now: 0, onEvent: (t, p) => { if (t === 'skill') casts[p.slot]++; } });
+  const game = new Game({ charIds: ['xiaoyao', 'anu'], now: 0, onEvent: (t, p) => { if (t === 'skill') casts[p.slot]++; } });
   const bots = [makeBot(game, 0, levelA, rand), makeBot(game, 1, levelB, rand)];
   let now = 0;
   while (!game.over && now < 600000) { now += 50; game.update(now); bots.forEach(b => b(now)); }
@@ -28,7 +28,7 @@ test('困難比簡單出招更快', () => {
 });
 
 test('低血量時聰明的電腦會優先補血', () => {
-  const game = new Game({ charIds: ['aman', 'lingfeng'], now: 0 });
+  const game = new Game({ charIds: ['anu', 'xiaoyao'], now: 0 });
   const f = game.fighters[0];
   f.hp = Math.round(f.maxHp * 0.3);
   game.avail[0] = ['百草回春', '蠱毒'];

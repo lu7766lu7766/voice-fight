@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { Game, C } = require('../server/game');
 
-function setup(a = 'lingfeng', b = 'lingyue') {
+function setup(a = 'xiaoyao', b = 'linger') {
   const events = [];
   const game = new Game({ charIds: [a, b], now: 0, onEvent: (t, p) => events.push([t, p]) });
   return { game, events };
@@ -20,7 +20,7 @@ test('集氣未滿不能出招，滿了才可以', () => {
 });
 
 test('身法越高集氣越快', () => {
-  const { game } = setup('jingyuan', 'yuer'); // 身法 48 vs 62
+  const { game } = setup('jingchou', 'yuer'); // 身法 48 vs 62
   game.update(3000);
   assert.ok(game.fighters[1].gauge > game.fighters[0].gauge);
 });
