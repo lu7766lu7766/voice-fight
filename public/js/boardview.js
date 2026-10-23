@@ -35,7 +35,7 @@
         this.cells.clear();
         this.snapshot = snap;
         this.measure();
-        snap.cells.forEach(([id, ch], idx) => this.createCell(id, ch, idx));
+        snap.cells.forEach(([id, ch, life], idx) => this.createCell(id, ch, idx, undefined, life));
         this.clearSelection();
       });
     }
@@ -58,9 +58,9 @@
         this.measure();
         const { cols, rows } = snap;
         let last = 0;
-        snap.cells.forEach(([id, ch], idx) => {
+        snap.cells.forEach(([id, ch, life], idx) => {
           const x = idx % cols, y = Math.floor(idx / cols);
-          const c = this.createCell(id, ch, idx, y - rows - 1);
+          const c = this.createCell(id, ch, idx, y - rows - 1, life);
           const delay = x * 45 + (rows - 1 - y) * 70;
           last = Math.max(last, delay);
           c.el.classList.add('drop', 'fresh');
@@ -93,16 +93,17 @@
       this.cells.clear();
       this.snapshot = snap;
       this.measure();
-      snap.cells.forEach(([id, ch], idx) => {
-        const c = this.createCell(id, ch, idx);
+      snap.cells.forEach(([id, ch, life], idx) => {
+        const c = this.createCell(id, ch, idx, undefined, life);
         if (flip) { c.el.classList.add('flipin'); c.el.style.animationDelay = (idx % snap.cols) * 30 + Math.floor(idx / snap.cols) * 30 + 'ms'; }
       });
       this.clearSelection();
     }
 
-    createCell(id, ch, idx, startRow) {
+    createCell(id, ch, idx, startRow, life) {
       const el = document.createElement('div');
       el.className = 'cell';
+      el.classList.toggle('aging', life === 1);
       el.innerHTML = `<span>${ch}</span>`;
       el.style.transform = this.pos(idx, startRow);
       el.dataset.id = id;
@@ -113,8 +114,8 @@
       return c;
     }
 
-    // 出招消除：路徑發光 → 爆開 → 落下補字
-    playRemoval(pathIds, snap, side) {
+    // 出招消除：路徑發光 → 爆開（同時風化的方塊碎裂）→ 落下補字
+    playRemoval(pathIds, snap, side, weatheredIds = []) {
       this.queue = this.queue.then(() => new Promise(res => {
         if (!this.snapshot) { this.setBoardNow(snap); return res(); }
         this.clearSelection();
@@ -126,12 +127,13 @@
         const glowMs = pathIds.length * 70 + 260;
         setTimeout(() => {
           pathIds.forEach(id => { const c = this.cells.get(id); if (c) c.el.classList.add('pop'); });
+          weatheredIds.forEach(id => { const c = this.cells.get(id); if (c) c.el.classList.add('crumble'); });
         }, glowMs);
         setTimeout(() => {
-          pathIds.forEach(id => { const c = this.cells.get(id); if (c) { c.el.remove(); this.cells.delete(id); } });
+          pathIds.concat(weatheredIds).forEach(id => { const c = this.cells.get(id); if (c) { c.el.remove(); this.cells.delete(id); } });
           this.applyFall(snap);
           setTimeout(res, 330);
-        }, glowMs + 220);
+        }, glowMs + (weatheredIds.length ? 420 : 220));
       }));
     }
 
@@ -143,16 +145,17 @@
       // 每欄新方塊數，用來決定從多高掉下來
       snap.cells.forEach(([id], idx) => { if (!this.cells.has(id)) newPerCol[idx % cols]++; });
       const seen = new Set();
-      snap.cells.forEach(([id, ch], idx) => {
+      snap.cells.forEach(([id, ch, life], idx) => {
         seen.add(id);
         const c = this.cells.get(id);
         if (c) {
           c.idx = idx;
+          c.el.classList.toggle('aging', life === 1);
           c.el.style.transform = this.pos(idx);
           if (c.ch !== ch) { c.ch = ch; c.el.querySelector('span').textContent = ch; c.el.classList.add('swap'); this.paint(c); }
         } else {
           const row = Math.floor(idx / cols);
-          const n = this.createCell(id, ch, idx, row - newPerCol[idx % cols] - 0.3);
+          const n = this.createCell(id, ch, idx, row - newPerCol[idx % cols] - 0.3, life);
           n.el.classList.add('fresh');
           void n.el.offsetWidth; // 觸發 reflow 讓 transition 生效
           n.el.style.transform = this.pos(idx);

@@ -146,11 +146,11 @@ class Game {
     }
     f.gauge = 0;
     const pathIds = path.map(i => this.board.cells[i].id);
-    this.board.removeAndCollapse(path);
+    const { weathered } = this.board.removeAndCollapse(path);
     this.refreshAvail();
     this.emit('skill', {
       slot, name, type: move.type, fx: move.fx, hits: move.hits || 1,
-      path, pathIds, board: this.board.snapshot(), impactMs: C.SKILL_IMPACT, multiGap: C.MULTI_GAP
+      path, pathIds, weatheredIds: weathered, board: this.board.snapshot(), impactMs: C.SKILL_IMPACT, multiGap: C.MULTI_GAP
     });
     this.schedule(C.SKILL_IMPACT, () => this.applyMove(f, foe, move));
     return { ok: true, move };

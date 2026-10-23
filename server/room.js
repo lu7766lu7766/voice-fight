@@ -324,7 +324,8 @@ class Room {
 
   // ---------- 廣播 ----------
 
-  emit(type, payload) { this.io.to(this.channel).emit(type, payload); }
+  // 對戰事件同時送給電腦端（直播畫面）
+  emit(type, payload) { this.io.to([this.channel, 'host:' + this.code]).emit(type, payload); }
 
   roomInfo() {
     return {
@@ -342,7 +343,6 @@ class Room {
   broadcastRoom() {
     this.touched = Date.now();
     this.emit('room', this.roomInfo());
-    this.io.to('host:' + this.code).emit('room', this.roomInfo());
   }
 }
 

@@ -407,7 +407,7 @@
   socket.on('skill', ev => {
     clearHint();
     scene.onSkill(ev);
-    board.playRemoval(ev.pathIds, ev.board, ev.slot);
+    board.playRemoval(ev.pathIds, ev.board, ev.slot, ev.weatheredIds);
     if (ev.slot === S.slot) vibrate([30, 40, 30]);
   });
   socket.on('hit', ev => {

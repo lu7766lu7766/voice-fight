@@ -25,9 +25,49 @@
       <button class="btn small" id="newRoom">開新房間</button>
     </div>
   </main>
+
+  <!-- 直播畫面：開始倒數後取代房號頁 -->
+  <section id="live" class="live hidden">
+    <header class="live-head">
+      <span class="live-logo">聲控<b>對戰</b></span>
+      <span class="live-tag" id="liveTag">● 直播中</span>
+      <span class="live-room">房間 <b id="liveRoom">----</b></span>
+    </header>
+    <div class="live-main">
+      <div class="live-left">
+        <div id="stage">
+          <canvas id="scene"></canvas>
+          <div class="hud">
+            <div class="hud-side" id="hud0"></div>
+            <div class="hud-side right" id="hud1"></div>
+          </div>
+          <div id="countdown"></div>
+        </div>
+        <div class="live-moves">
+          <ul class="lm s0" id="lm0"></ul>
+          <ul class="lm s1" id="lm1"></ul>
+        </div>
+      </div>
+      <div id="boardWrap">
+        <div id="board"></div>
+        <div id="boardCover">
+          <div id="cdNum" class="cd-num"></div>
+          <p class="cd-tip">雙方正在記招式，倒數結束後方塊落下！</p>
+        </div>
+      </div>
+    </div>
+    <div id="liveResult" class="live-result hidden">
+      <div class="result-box"><h2 id="liveWinner"></h2><p id="liveSub"></p></div>
+    </div>
+  </section>
+  <div id="toast"></div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="/shared/characters.js"></script>
   <script src="/js/sprites.js"></script>
+  <script src="/js/fx.js"></script>
+  <script src="/js/scene.js"></script>
+  <script src="/js/boardview.js"></script>
   <script src="/js/host.js"></script>
 </body>
 </html>

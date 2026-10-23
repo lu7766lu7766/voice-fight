@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
-const { Board } = require('../server/board');
+const { Board, LIFE_MIN, LIFE_MAX } = require('../server/board');
 const { CHARACTERS } = require('../public/shared/characters');
 
 const sets = CHARACTERS.map(c => c.moves.map(m => m.name));
@@ -52,6 +52,25 @@ test('消除後方塊往下掉、頂端補新格，id 不重複', () => {
     assert.strictEqual(j % board.cols, i % board.cols);
     assert.ok(Math.floor(j / board.cols) >= Math.floor(i / board.cols));
   });
+});
+
+test('風化：沒被用到的方塊最多 LIFE_MAX 回合就消失，壽命一直在範圍內', () => {
+  const quiet = new Board();
+  quiet.setMovesets([[], []]); // 不種招式，只看風化
+  quiet.generate();
+  const original = new Set(quiet.cells.map(c => c.id));
+  for (let k = 0; k < LIFE_MAX; k++) {
+    const { weathered } = quiet.removeAndCollapse([]);
+    if (k < LIFE_MIN - 1) assert.strictEqual(weathered.length, 0, `第 ${k + 1} 回合不該有方塊風化`);
+  }
+  assert.ok(quiet.cells.every(c => !original.has(c.id)), '原本的方塊都應該風化了');
+
+  const board = makeBoard(4, 5);
+  for (let k = 0; k < 300; k++) {
+    const avail = board.available(board.movesets[k % 2]);
+    board.removeAndCollapse(board.findPath(avail[0]));
+    for (const c of board.cells) assert.ok(c.life >= 1 && c.life <= LIFE_MAX, `壽命 ${c.life} 超出範圍`);
+  }
 });
 
 function grid(text, opts = {}) {

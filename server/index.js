@@ -139,6 +139,8 @@ io.on('connection', socket => {
     socket.join('host:' + room.code);
     socket.data.hostOf = room.code;
     socket.emit('host:room', await hostPayload(room, socket));
+    // 對戰中重新整理電腦畫面：直接接上直播
+    if (room.game) socket.emit('battle', room.battleInfo());
   }));
 
   socket.on('host:new', safe(async () => {

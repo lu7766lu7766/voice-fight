@@ -2,12 +2,16 @@
 // 文字方塊棋盤：上下左右相連即可（路徑可任意轉彎），同一格不可重複使用。
 // 設定 diagonal: true 時斜角也算相連。
 // 消除後上方方塊落下、頂端補新字，並保證每位玩家都至少有 MIN_PER_PLAYER 個自己的招式可念。
+// 風化：每個方塊有 LIFE_MIN～LIFE_MAX 回合的壽命（任一方出一次招算一回合），
+// 一直沒被用到就會消失，避免湊不成招式的字卡在盤面上。
 
 const { FILLER } = require('../public/shared/characters');
 
 const COLS = 6;
 const ROWS = 6;
 const MIN_PER_PLAYER = 2;
+const LIFE_MIN = 3;
+const LIFE_MAX = 5;
 
 const DIAGONAL = process.env.DIAGONAL === '1';
 
@@ -67,7 +71,9 @@ class Board {
     return this.diagonal || dx + dy === 1;
   }
 
-  newCell(ch) { return { id: this.nextId++, ch }; }
+  newCell(ch) { return { id: this.nextId++, ch, life: this.randomLife() }; }
+
+  randomLife() { return LIFE_MIN + Math.floor(this.rng() * (LIFE_MAX - LIFE_MIN + 1)); }
 
   generate() {
     for (let i = 0; i < this.cells.length; i++) this.cells[i] = this.newCell(this.randomChar());
@@ -118,9 +124,14 @@ class Board {
     return true;
   }
 
-  // 消除路徑上的方塊，往下掉落並由頂端補字。回傳新補上的格子索引。
+  // 消除路徑上的方塊，沒被用到的方塊壽命減 1、歸零的一起風化消失，往下掉落並由頂端補字。
+  // 回傳 { fresh: 新補上的格子索引, weathered: 風化消失的方塊 id }
   removeAndCollapse(path) {
     const removed = new Set(path);
+    const weathered = [];
+    this.cells.forEach((c, i) => {
+      if (!removed.has(i) && --c.life <= 0) { removed.add(i); weathered.push(c.id); }
+    });
     const fresh = new Set();
     for (let x = 0; x < this.cols; x++) {
       const keep = [];
@@ -135,7 +146,7 @@ class Board {
       }
     }
     this.ensure(fresh, this.minPerPlayer);
-    return fresh;
+    return { fresh, weathered };
   }
 
   // 整盤重新洗牌（玩家念「重置」時）
@@ -173,8 +184,10 @@ class Board {
         const i = path[k];
         if (this.cells[i].ch !== ch) {
           // 非新落下的格子被改寫時給新 id，前端會以「換字」動畫呈現
-          this.cells[i] = fresh.has(i) ? { id: this.cells[i].id, ch } : this.newCell(ch);
+          this.cells[i] = fresh.has(i) ? { id: this.cells[i].id, ch, life: this.cells[i].life } : this.newCell(ch);
         }
+        // 種下的招式重新計算壽命，不會一種下就風化
+        this.cells[i].life = Math.max(this.cells[i].life, this.randomLife());
       });
     }
   }
@@ -208,8 +221,8 @@ class Board {
   }
 
   snapshot() {
-    return { cols: this.cols, rows: this.rows, diagonal: this.diagonal, cells: this.cells.map(c => [c.id, c.ch]) };
+    return { cols: this.cols, rows: this.rows, diagonal: this.diagonal, cells: this.cells.map(c => [c.id, c.ch, c.life]) };
   }
 }
 
-module.exports = { Board, COLS, ROWS, MIN_PER_PLAYER, DIAGONAL };
+module.exports = { Board, COLS, ROWS, MIN_PER_PLAYER, LIFE_MIN, LIFE_MAX, DIAGONAL };
