@@ -184,6 +184,36 @@
     "u": 0.25,
     "ax": 217.7
    }
+  },
+  "yuer": {
+   "attack": {
+    "src": "img/chars/yuer/attack.webp",
+    "w": 522,
+    "h": 526,
+    "u": 0.25,
+    "ax": 222.7
+   },
+   "hurt": {
+    "src": "img/chars/yuer/hurt.webp",
+    "w": 541,
+    "h": 544,
+    "u": 0.25,
+    "ax": 237.7
+   },
+   "idle": {
+    "src": "img/chars/yuer/idle.webp",
+    "w": 558,
+    "h": 559,
+    "u": 0.25,
+    "ax": 182.7
+   },
+   "win": {
+    "src": "img/chars/yuer/win.webp",
+    "w": 377,
+    "h": 573,
+    "u": 0.25,
+    "ax": 177.7
+   }
   }
  },
  "fx": {},

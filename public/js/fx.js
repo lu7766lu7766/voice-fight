@@ -1,4 +1,4 @@
-// 招式特效：粒子系統、繪圖工具，以及 30 招各自的特效。
+// 招式特效：粒子系統、繪圖工具，以及每招各自的特效。
 // 每個特效函式以 this = BattleScene 呼叫：fx(t0, a, b, f, ev)
 //   t0 施放時刻、a 施放者、b 目標、f 施放者資料、ev 伺服器送來的招式事件
 // 傷害在 t0 + IMPACT 結算（多段每段再加 ev.multiGap），特效的命中瞬間要對齊這個時間。
@@ -173,6 +173,22 @@
         ctx.beginPath(); ctx.arc(size * 0.8, 0, size * 0.22, 0, TAU); ctx.fill();
         break;
       }
+      case 'butterfly': {
+        // 彩蝶：兩對翅膀拍動，身上帶光
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.translate(p.x, p.y);
+        ctx.rotate(Math.atan2(p.vy, p.vx) + Math.PI / 2);
+        ctx.drawImage(softDot(p.color), -size * 2.2, -size * 2.2, size * 4.4, size * 4.4);
+        const flap = 0.25 + 0.75 * Math.abs(Math.sin(now / 55 + p.seed * 30));
+        ctx.fillStyle = p.color;
+        for (const side of [-1, 1]) {
+          ctx.beginPath(); ctx.ellipse(side * size * 0.7 * flap, -size * 0.35, size * 0.8 * flap, size * 0.65, side * 0.5, 0, TAU); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(side * size * 0.5 * flap, size * 0.45, size * 0.55 * flap, size * 0.45, -side * 0.4, 0, TAU); ctx.fill();
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-size * 0.08, -size * 0.6, size * 0.16, size * 1.2);
+        break;
+      }
       case 'ring': {
         ctx.globalCompositeOperation = 'lighter';
         ctx.strokeStyle = p.color; ctx.lineWidth = Math.max(0.5, p.size * 0.15 * (1 - k));
@@ -191,6 +207,22 @@
   }
 
   // ---------- 掛到 BattleScene 上的工具 ----------
+  // 四角星芒（追星破月的星點）
+  function twinkle(ctx, x, y, r, color, alpha) {
+    if (r <= 0 || alpha <= 0) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(1, alpha);
+    ctx.drawImage(softDot(color), x - r * 1.2, y - r * 1.2, r * 2.4, r * 2.4);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * TAU - Math.PI / 2, rr = i % 2 ? r * 0.18 : r;
+      ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
   const kit = {
     initFx() {
       this.parts = [];
@@ -711,7 +743,7 @@
     }
   };
 
-  // ---------- 30 招特效 ----------
+  // ---------- 各招特效 ----------
   // 每招註解寫的是想呈現的意境
   const moves = {
     // ===== 李逍遙 =====
@@ -1446,7 +1478,7 @@
     },
 
     // ===== 拓跋玉兒 =====
-    // 風行：草原疾風繞身，身影如風，帶起一陣青草與風痕
+    // 馮虛御風：借風之力，疾風繞身，身影如風，帶起一陣青草與風痕
     gale(t0, a, b) {
       const col = '#9ff2e5', dir = this.dirTo(a, b);
       this.addFx(t0 + 250, 1000, (ctx, t, el, now) => {
@@ -1470,139 +1502,228 @@
         { kind: 'leaf', angle: dir > 0 ? [-0.3, 0.1] : [Math.PI - 0.1, Math.PI + 0.3], speed: [150, 250], life: [600, 900], size: [3, 4.5], color: ['#a7c957', '#6a994e', '#c7f9cc'], spin: 8, drag: 1 });
     },
 
-    // 狼嘯：身後浮現蒼狼魂影仰天長嘯，聲浪衝擊敵人，留下三道爪痕
-    howl(t0, a, b) {
-      const col = '#cfe3ff', dir = this.dirTo(a, b);
-      this.addFx(t0 + 250, 900, (ctx, t) => {
-        const p = this.body(a), s = this.scale, al = env(t, 0.2, 0.3) * 0.85;
-        const x = p.x - dir * 18 * s, y = p.y - 50 * s;
-        if (this.drawTex(ctx, 'wolf', x, y, 120 * s, 0, al, dir)) return;
-        // 程式版狼頭剪影（仰頭）
-        ctx.save(); ctx.translate(x, y); ctx.scale(dir * s, s);
-        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = al * 0.6;
-        ctx.drawImage(softDot('#6f8fdf', 0.1), -50, -50, 100, 100);
-        ctx.fillStyle = 'rgba(140,170,255,0.35)'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(-30, 40); ctx.lineTo(-24, 0); ctx.lineTo(-16, -22); ctx.lineTo(-20, -40); ctx.lineTo(-6, -26);
-        ctx.lineTo(4, -30); ctx.lineTo(28, -52); ctx.lineTo(24, -40); ctx.lineTo(34, -44); ctx.lineTo(18, -22);
-        ctx.lineTo(14, -12); ctx.lineTo(4, -4); ctx.lineTo(10, 20); ctx.lineTo(4, 40); ctx.closePath();
-        ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(-4, -18, 2.5, 0, TAU); ctx.fill();
+    // 追星破月：衝到眼前由下往上一記月牙斬，劈碎身後的滿月，星芒沿刀光散落；內勁一波波鑽進對手體內
+    moonbreak(t0, a, b) {
+      const col = '#bcd4ff', dir = this.dirTo(a, b);
+      const moonP = () => { const p = this.head(b); return { x: p.x + dir * 10 * this.scale, y: p.y - 4 * this.scale }; };
+      // 滿月浮現，命中時裂成兩半往上下錯開
+      this.layerBack(t0 + 300, 1150, (ctx, t, el) => {
+        const p = moonP(), s = this.scale, R = 42 * s, hit = seg(el, IMPACT - 300, IMPACT - 300 + 500);
+        const al = env(t, 0.2, 0.35) * 0.85;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        this.glowAt(ctx, p.x, p.y, R * 1.9, col, al * 0.5);
+        for (const side of [-1, 1]) {
+          const off = easeOut(hit) * 14 * s;
+          ctx.save();
+          ctx.translate(p.x + side * off * 0.4 * dir, p.y + side * off);
+          ctx.beginPath();
+          // 以斜線把月亮切成兩半
+          ctx.rect(-R * 1.2, side > 0 ? 0 : -R * 1.2, R * 2.4, R * 1.2);
+          ctx.clip();
+          ctx.globalAlpha = al * (1 - 0.6 * hit);
+          ctx.fillStyle = 'rgba(225,235,255,0.55)';
+          ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
+          ctx.restore();
+        }
+        if (hit > 0 && hit < 1) {
+          ctx.globalAlpha = 1 - hit; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5 * s;
+          ctx.beginPath(); ctx.moveTo(p.x - R * 1.3, p.y); ctx.lineTo(p.x + R * 1.3, p.y); ctx.stroke();
+        }
         ctx.restore();
       });
-      for (let k = 0; k < 4; k++) {
-        this.addFx(t0 + 450 + k * 70, 340, (ctx, t) => {
-          const A = this.body(a), B = this.body(b), s = this.scale;
-          const x = A.x + (B.x - A.x) * t;
-          ctx.globalCompositeOperation = 'lighter';
-          ctx.globalAlpha = (1 - t) * 0.8; ctx.strokeStyle = col; ctx.lineWidth = (4 - k * 0.5) * s;
-          ctx.beginPath(); ctx.ellipse(x, A.y - 20 * s, (10 + 20 * t) * s, (28 + 30 * t) * s, 0, dir > 0 ? -1.1 : Math.PI - 1.1, dir > 0 ? 1.1 : Math.PI + 1.1); ctx.stroke();
-        });
-      }
-      // 爪痕
-      this.addFx(t0 + IMPACT, 600, (ctx, t) => {
+      // 由下往上的月牙刀光
+      const a0 = dir > 0 ? Math.PI * 0.75 : Math.PI * 0.25, sweep = dir * Math.PI;
+      this.addFx(t0 + IMPACT - 120, 460, (ctx, t) => {
         const p = this.body(b), s = this.scale;
-        for (let i = 0; i < 3; i++) {
-          this.crescent(ctx, p.x + (i - 1) * 14 * s - dir * 30 * s, p.y - 40 * s, 70 * s, 7 * s, 0.9, 0.9, t * 3 - 0.5 - i * 0.15, t * 3 - i * 0.15, '#e6f0ff', 1 - easeIn(t));
+        const lo = t * 2.4 - 0.9, hi = t * 2.4;
+        this.crescent(ctx, p.x - dir * 8 * s, p.y - 6 * s, 78 * s, 22 * s, a0, sweep, lo, hi, col, 1 - easeIn(t));
+        // 刀光前端拖著星芒
+        const u = clamp01(hi);
+        const ang = a0 + sweep * u;
+        twinkle(ctx, p.x - dir * 8 * s + Math.cos(ang) * 78 * s, p.y - 6 * s + Math.sin(ang) * 78 * s, 16 * s * (1 - t), '#ffe8a0', 1 - t);
+      });
+      // 散落的星點
+      this.addFx(t0 + IMPACT - 40, 700, (ctx, t) => {
+        const p = this.body(b), s = this.scale;
+        for (let i = 0; i < 7; i++) {
+          const ang = a0 + sweep * (0.15 + i * 0.12);
+          const r = (78 + Math.sin(i * 5.3) * 12 + 30 * easeOut(t)) * s;
+          const tw = 0.6 + 0.4 * Math.sin(t * 20 + i * 2);
+          twinkle(ctx, p.x - dir * 8 * s + Math.cos(ang) * r, p.y - 6 * s + Math.sin(ang) * r + 10 * s * t, (5 + (i % 3) * 2.5) * s, i % 2 ? '#ffe8a0' : '#ffffff', (1 - easeIn(t)) * tw);
         }
       });
       this.impact(t0 + IMPACT, b, col, 1);
-    },
-
-    // 穿雲箭：拉滿弓弦凝聚光芒，一箭破空，箭身捲起螺旋氣流貫穿雲霄
-    arrow(t0, a, b) {
-      const col = '#9ff2e5';
-      this.addFx(t0 + 200, 380, (ctx, t) => { const h = this.hand(a); this.glowAt(ctx, h.x, h.y, 30 * this.scale * easeOut(t), col, 0.9); });
-      this.burst(t0 + 200, () => this.hand(a), 14, { kind: 'glow', speed: [60, 100], life: [300, 400], size: [1.5, 2.5], color: col, to: this.hand(a), pull: 25, drag: 1, spread: 30 });
-      const path = u => { const A = this.hand(a), B = this.body(b); return { x: A.x + (B.x - A.x) * u, y: A.y + (B.y - A.y) * u }; };
-      this.addFx(t0 + 620, 130, (ctx, t) => {
-        const p = path(t), A = path(0), B = path(1), s = this.scale;
-        const ang = Math.atan2(B.y - A.y, B.x - A.x);
-        // 箭道光痕 + 螺旋氣環
-        this.trail(ctx, path, t, 1, 8, col, 0.8);
-        ctx.globalCompositeOperation = 'lighter';
-        for (let i = 0; i < 5; i++) {
-          const u = t - i * 0.12; if (u < 0) break;
-          const q = path(u);
-          ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(ang);
-          ctx.globalAlpha = 0.7 * (1 - i / 5); ctx.strokeStyle = '#e6fffb'; ctx.lineWidth = 1.5 * s;
-          ctx.beginPath(); ctx.ellipse(0, 0, 4 * s, (10 + i * 3) * s, 0, 0, TAU); ctx.stroke();
+      // 內勁：三波光環往體內收縮，身上竄出細細的勁脈
+      for (let k = 0; k < 3; k++) {
+        this.addFx(t0 + IMPACT + 140 + k * 170, 300, (ctx, t) => {
+          const p = this.body(b), s = this.scale, r = (46 - 40 * easeIn(t)) * s;
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = Math.sin(Math.PI * t) * 0.9;
+          ctx.strokeStyle = '#8fb0ff'; ctx.lineWidth = 3 * s;
+          ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * 1.25, 0, 0, TAU); ctx.stroke();
+          ctx.strokeStyle = '#e6eeff'; ctx.lineWidth = 1.2 * s; ctx.lineCap = 'round';
+          for (let i = 0; i < 6; i++) {
+            const ang = i / 6 * TAU + k;
+            let x = p.x, y = p.y;
+            ctx.beginPath(); ctx.moveTo(x, y);
+            for (let j = 1; j <= 3; j++) {
+              const aa = ang + Math.sin(i * 3 + j * 7 + k) * 0.6, L = 9 * s * easeOut(t * 2);
+              x += Math.cos(aa) * L; y += Math.sin(aa) * L * 1.3; ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+          }
           ctx.restore();
-        }
-        this.arrowShape(ctx, p.x, p.y, ang, 1.4, col);
-      });
-      // 箭道殘留
-      this.addFx(t0 + IMPACT, 400, (ctx, t) => {
-        const A = path(0), B = path(1);
-        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 1 - t;
-        ctx.strokeStyle = col; ctx.lineWidth = 3 * this.scale * (1 - t);
-        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
-      });
-      this.burst(t0 + IMPACT, () => this.body(b), 12, { kind: 'spark', angle: this.dirTo(a, b) > 0 ? [-0.4, 0.4] : [Math.PI - 0.4, Math.PI + 0.4], speed: [250, 500], life: [200, 350], size: 2, color: '#e6fffb', drag: 3 });
-      this.impact(t0 + IMPACT, b, col, 1.2);
-    },
-
-    // 連珠箭：箭如連珠，三支光箭接連射出
-    arrows(t0, a, b, f, ev) {
-      const col = '#9ff2e5', gap = ev.multiGap || 160;
-      for (let k = 0; k < (ev.hits || 3); k++) {
-        const at = t0 + IMPACT + k * gap;
-        const dy = (k - 1) * 14;
-        const path = u => { const A = this.hand(a), B = this.body(b); return { x: A.x + (B.x - A.x) * u, y: A.y + (B.y + dy * this.scale - A.y) * u - Math.sin(Math.PI * u) * 8 * this.scale }; };
-        this.addFx(at - 140, 140, (ctx, t) => {
-          this.trail(ctx, path, t, 0.6, 5, col, 0.8);
-          const p = path(t), q = path(Math.max(0, t - 0.05));
-          this.arrowShape(ctx, p.x, p.y, Math.atan2(p.y - q.y, p.x - q.x || 1), 1.1, col);
+          this.glowAt(ctx, p.x, p.y, 26 * s, '#6f8fff', Math.sin(Math.PI * t) * 0.6);
         });
-        this.impact(at, b, col, 0.7, { dy });
+        this.at(t0 + IMPACT + 140 + k * 170 + 240, now => this.doShake(now, 90, 2));
       }
     },
 
-    // 鷹擊長空：蒼鷹魂影長鳴盤旋於天，收翅俯衝撲擊敵人，羽毛漫天
-    eagle(t0, a, b) {
-      const col = '#9ff2e5', dir = this.dirTo(a, b);
-      this.dimScreen(t0 + 100, 1300, 0.4, '#04121a');
-      const drawEagle = (ctx, x, y, ang, size, flap, alpha) => {
-        const s = this.scale * size;
-        if (this.drawTex(ctx, 'eagle', x, y, 120 * s, ang, alpha, dir)) return;
-        ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.scale(dir, 1);
-        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha;
-        ctx.drawImage(softDot(col, 0.1), -40 * s, -40 * s, 80 * s, 80 * s);
-        ctx.fillStyle = 'rgba(120,220,210,0.45)'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.2;
-        // 身體
-        ctx.beginPath(); ctx.moveTo(26 * s, 0); ctx.lineTo(14 * s, -5 * s); ctx.lineTo(-20 * s, -4 * s); ctx.lineTo(-34 * s, -9 * s); ctx.lineTo(-30 * s, 0); ctx.lineTo(-34 * s, 9 * s); ctx.lineTo(-20 * s, 4 * s); ctx.lineTo(14 * s, 5 * s); ctx.closePath(); ctx.fill(); ctx.stroke();
-        // 雙翼（羽尖分開）
-        for (const side of [-1, 1]) {
-          ctx.beginPath(); ctx.moveTo(8 * s, 0);
-          const span = (44 + flap * 12) * s * side;
-          ctx.quadraticCurveTo(0, span * 0.5, -10 * s, span);
-          for (let i = 0; i < 4; i++) ctx.lineTo(-14 * s - i * 6 * s, span * (0.92 - i * 0.12) + side * 4 * s * (i % 2));
-          ctx.quadraticCurveTo(-24 * s, side * 6 * s, -12 * s, 0);
-          ctx.closePath(); ctx.fill(); ctx.stroke();
-        }
-        ctx.fillStyle = '#ffd84a'; ctx.beginPath(); ctx.moveTo(26 * s, -1 * s); ctx.lineTo(33 * s, 2 * s); ctx.lineTo(25 * s, 3 * s); ctx.fill();
+    // 伏虎沖天：刀頭往地上一頓，勁力一顆顆連珠竄地而去，到敵人腳下化作猛虎之勢直沖上天
+    tigerrise(t0, a, b) {
+      const col = '#ffa53d', dir = this.dirTo(a, b);
+      const ground = u => { const A = this.feet(a), B = this.feet(b); return { x: A.x + dir * 40 * this.scale + (B.x - A.x - dir * 40 * this.scale) * u, y: B.y }; };
+      // 頓地
+      this.addFx(t0 + 260, 420, (ctx, t) => { const p = ground(0); this.shock(ctx, p.x, p.y, t, { r1: 60, w: 8, color: col, squash: 0.3 }); });
+      this.burst(t0 + 260, () => ground(0), 8, { kind: 'rock', speed: [80, 200], angle: [-Math.PI * 0.85, -Math.PI * 0.15], life: [500, 700], size: [2, 3.5], color: ['#6b5a4a', '#8a7560'], g: 900, spin: 10, drag: 0.5 });
+      // 地面上竄行的勁痕
+      this.layerBack(t0 + 280, IMPACT - 280 + 300, (ctx, t, el) => {
+        const s = this.scale, u = clamp01(el / (IMPACT - 330));
+        const A = ground(0), P = ground(u);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 1 - easeIn(seg(el, IMPACT - 280, IMPACT));
+        const g = ctx.createLinearGradient(A.x, 0, P.x, 0);
+        g.addColorStop(0, rgba(col, 0)); g.addColorStop(1, '#fff1c9');
+        ctx.strokeStyle = g; ctx.lineWidth = 4 * s; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(A.x, A.y);
+        for (let i = 1; i <= 16; i++) { const q = ground(u * i / 16); ctx.lineTo(q.x, q.y + (i % 2 ? 2 : -2) * s); }
+        ctx.stroke();
+        this.glowAt(ctx, P.x, P.y, 26 * s, col, 0.8);
         ctx.restore();
-      };
-      // 盤旋
-      this.addFx(t0 + 150, 450, (ctx, t, el) => {
-        const cx = (this.baseX(a) + this.baseX(b)) / 2, s = this.scale;
-        const ang = -Math.PI / 2 + t * Math.PI * 1.2;
-        drawEagle(ctx, cx + Math.cos(ang) * 60 * s * dir, this.H * 0.2 + Math.sin(ang) * 18 * s, 0, 0.8, Math.sin(el / 60), easeOut(t * 3));
       });
-      // 俯衝
-      const path = u => {
-        const s = this.scale, cx = (this.baseX(a) + this.baseX(b)) / 2;
-        const ang = -Math.PI / 2 + Math.PI * 1.2;
-        const A = { x: cx + Math.cos(ang) * 60 * s * dir, y: this.H * 0.2 + Math.sin(ang) * 18 * s }, B = this.body(b);
-        return { x: A.x + (B.x - A.x) * easeIn(u), y: A.y + (B.y - A.y) * easeIn(u) };
-      };
-      this.addFx(t0 + 600, 150, (ctx, t) => {
-        const p = path(t), q = path(Math.max(0, t - 0.1));
-        this.trail(ctx, path, t, 0.8, 22, col, 0.6);
-        drawEagle(ctx, p.x, p.y, Math.atan2(p.y - q.y, (p.x - q.x) * dir) * dir, 1.1, -0.6, 1);
+      // 連珠：沿路一顆顆炸起的勁珠
+      for (let k = 0; k < 4; k++) {
+        const u = (k + 1) / 5, at = t0 + 280 + (IMPACT - 330) * u;
+        this.addFx(at, 380, (ctx, t) => {
+          const p = ground(u), s = this.scale;
+          this.glowAt(ctx, p.x, p.y - 14 * s * easeOut(t), 22 * s * (1 - t * 0.5), col, 1 - t);
+          this.glowAt(ctx, p.x, p.y - 14 * s * easeOut(t), 8 * s, '#ffffff', 1 - t);
+          this.shock(ctx, p.x, p.y, t, { r1: 34, w: 5, color: col, squash: 0.3 });
+        });
+        this.burst(at, () => ground(u), 5, { kind: 'rock', speed: [60, 160], angle: [-Math.PI * 0.8, -Math.PI * 0.2], life: [400, 600], size: [1.5, 3], color: ['#6b5a4a', '#8a7560'], g: 900, spin: 10, drag: 0.5 });
+      }
+      // 沖天勁柱
+      this.addFx(t0 + IMPACT - 40, 750, (ctx, t) => { const p = this.feet(b); this.pillar(ctx, p.x, t, col, 46, 0); });
+      // 虎形勁氣往上竄（有 tiger.png 用圖，沒有就用「虎」字）
+      this.addFx(t0 + IMPACT - 20, 800, (ctx, t) => {
+        const p = this.body(b), s = this.scale, rise = easeOut(t) * 70 * s;
+        if (this.drawTex(ctx, 'tiger', p.x, p.y - 20 * s - rise, 150 * s * (0.8 + 0.2 * easeOut(t)), 0, env(t, 0.08, 0.45), dir)) return;
+        this.stamp(ctx, { x: p.x, y: p.y - 30 * s - rise }, '虎', col, t, 1.5);
       });
-      this.burst(t0 + IMPACT, () => this.body(b), 22, { kind: 'feather', speed: [80, 260], life: [800, 1200], size: [3, 5], color: ['#cfe3ff', '#9ff2e5', '#ffffff'], g: 60, spin: 5, drag: 2.5 });
-      this.addFx(t0 + IMPACT, 420, (ctx, t) => { const p = this.body(b); this.speedLines(ctx, p.x, p.y, t, '#e6fffb'); });
+      this.stream(t0 + IMPACT, 450, 70, () => { const p = this.feet(b); return { x: p.x + rand(-22, 22) * this.scale, y: p.y - rand(0, 40) * this.scale }; },
+        { kind: 'spark', angle: [-Math.PI / 2 - 0.12, -Math.PI / 2 + 0.12], speed: [500, 900], life: [250, 450], size: [1.5, 2.5], color: ['#ffffff', '#ffd27a', col], drag: 1 });
+      this.burst(t0 + IMPACT, () => this.feet(b), 14, { kind: 'rock', speed: [200, 420], angle: [-Math.PI * 0.65, -Math.PI * 0.35], life: [700, 1000], size: [2.5, 5], color: ['#6b5a4a', '#8a7560'], g: 900, spin: 10, drag: 0.4 });
+      this.impact(t0 + IMPACT, b, col, 1.3, { dy: 10 });
+    },
+
+    // 蒼龍蓋天：長柄刀旋出一條蒼龍，蜿蜒游過半空，再一圈圈由下往上盤捲敵人，每纏一圈就是一擊
+    azuredragon(t0, a, b, f, ev) {
+      const col = '#3fd6c6', gap = ev.multiGap || 160, hits = ev.hits || 3, dir = this.dirTo(a, b);
+      const start = t0 + 330, T1 = IMPACT - 330, T2 = (hits - 1) * gap + 180, D = T1 + T2;
+      const ang0 = dir > 0 ? Math.PI : 0;
+      // 龍身路徑：u = 0~1 對應整段時間
+      const pos = u => {
+        const s = this.scale, ms = u * D, B = this.body(b);
+        const w0 = { x: B.x + Math.cos(ang0) * 46 * s, y: B.y + 24 * s };
+        if (ms < T1) {
+          const v = ms / T1, A = this.hand(a);
+          return { x: A.x + (w0.x - A.x) * v, y: A.y + (w0.y - A.y) * v - Math.sin(Math.PI * v) * 55 * s + Math.sin(v * TAU * 1.5) * 12 * s };
+        }
+        const w = (ms - T1) / T2, ang = ang0 + w * (hits - 0.6) * TAU * dir;
+        return { x: B.x + Math.cos(ang) * 46 * s, y: B.y + 24 * s - w * 80 * s + Math.sin(ang) * 14 * s };
+      };
+      this.addFx(start, D + 350, (ctx, t, el) => {
+        const s = this.scale, head = clamp01(el / D), fade = 1 - seg(el, D, D + 350);
+        const tail = Math.max(0, head - 0.42), N = 44;
+        const pts = [];
+        for (let i = 0; i <= N; i++) pts.push(pos(tail + (head - tail) * i / N));
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        // 龍身：越靠近龍頭越粗，外層青光、內層白芯，再加一排鱗光
+        for (const [wk, c, al] of [[2.6, col, 0.25], [1.2, col, 0.85], [0.45, '#e9fffb', 1]]) {
+          for (let i = 1; i <= N; i++) {
+            const k = i / N;
+            ctx.globalAlpha = al * fade * (0.25 + 0.75 * k);
+            ctx.strokeStyle = c; ctx.lineWidth = wk * (3 + 9 * Math.sin(Math.PI * Math.min(1, k * 1.15))) * s;
+            ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+          }
+        }
+        for (let i = 3; i < N - 2; i += 3) {
+          ctx.globalAlpha = 0.7 * fade; ctx.fillStyle = '#ffffff';
+          ctx.beginPath(); ctx.arc(pts[i].x, pts[i].y - 3 * s, 1.4 * s, 0, TAU); ctx.fill();
+        }
+        // 龍頭：光球 + 兩支龍角 + 龍鬚
+        const H = pts[N], P = pts[N - 2], ang = Math.atan2(H.y - P.y, H.x - P.x);
+        if (head < 1) {
+          this.glowAt(ctx, H.x, H.y, 26 * s, col, fade);
+          this.glowAt(ctx, H.x, H.y, 9 * s, '#ffffff', fade);
+          ctx.translate(H.x, H.y); ctx.rotate(ang);
+          ctx.globalAlpha = fade; ctx.strokeStyle = '#e9fffb'; ctx.lineWidth = 2 * s;
+          ctx.beginPath();
+          ctx.moveTo(-4 * s, -4 * s); ctx.quadraticCurveTo(-12 * s, -10 * s, -20 * s, -14 * s);
+          ctx.moveTo(-4 * s, 4 * s); ctx.quadraticCurveTo(-12 * s, 10 * s, -20 * s, 14 * s);
+          ctx.stroke();
+          ctx.strokeStyle = col; ctx.lineWidth = 1.2 * s;
+          const wv = Math.sin(el / 50) * 4 * s;
+          ctx.beginPath();
+          ctx.moveTo(6 * s, -3 * s); ctx.quadraticCurveTo(-8 * s, -8 * s + wv, -26 * s, -4 * s - wv);
+          ctx.moveTo(6 * s, 3 * s); ctx.quadraticCurveTo(-8 * s, 8 * s - wv, -26 * s, 4 * s + wv);
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
+      this.stream(start, D, 50, () => pos(clamp01((performance.now() - start) / D)),
+        { kind: 'glow', speed: [10, 40], life: [300, 500], size: [1.5, 3], color: [col, '#e9fffb'], drag: 2 });
+      for (let k = 0; k < hits; k++) {
+        this.impact(t0 + IMPACT + k * gap, b, col, 0.75, { dy: 18 - k * 22 });
+      }
+      this.addFx(t0 + IMPACT + (hits - 1) * gap, 400, (ctx, t) => { const p = this.body(b); this.shock(ctx, p.x, p.y - 20 * this.scale, t, { r1: 90, w: 8, color: col, squash: 0.45 }); });
+    },
+
+    // 蝶靈神影：身化漫天彩蝶，一眨眼分出數道殘影從四面八方同時斬落，最後彩蝶自敵人身上紛飛四散
+    butterfly(t0, a, b) {
+      const col = '#ff8fd0', col2 = '#c9a0ff', dir = this.dirTo(a, b);
+      this.dimScreen(t0 + 80, 1500, 0.5, '#14061c');
+      // 起手：身邊湧出彩蝶，飛向敵人
+      this.burst(t0 + 150, () => this.body(a), 18, { kind: 'butterfly', speed: [80, 200], angle: dir > 0 ? [-1.2, 0.6] : [Math.PI - 0.6, Math.PI + 1.2], life: [700, 1100], size: [4, 6], color: [col, col2, '#ffd6f0'], drag: 1.2, to: this.body(b), pull: 3, wob: 2 });
+      // 殘影：四面八方閃現
+      const spots = [[-70, 0.0], [62, 0.12], [-30, 0.24], [40, 0.36], [-85, 0.48], [80, 0.6]];
+      spots.forEach(([dx, d], i) => {
+        this.addFx(t0 + IMPACT - 300 + d * 500, 170, (ctx, t, el, now) => {
+          const off = (this.baseX(b) - this.baseX(a)) / this.scale;
+          this.ghost(ctx, a, off + dx, Math.sin(Math.PI * t) * 0.6, now, i % 2 ? col : col2);
+        });
+      });
+      // 多方向斬擊
+      for (let k = 0; k < 7; k++) {
+        const at = t0 + IMPACT - 300 + k * 50, rot = k / 7 * TAU + 0.5, sw = (k % 2 ? 1 : -1) * 1.7;
+        this.addFx(at, 200, (ctx, t) => {
+          const p = this.body(b), s = this.scale;
+          this.crescent(ctx, p.x, p.y, 58 * s, 13 * s, rot, sw, t * 2.2 - 0.8, t * 2.2, k % 2 ? col : col2, 1 - easeIn(t));
+        });
+        this.burst(at + 100, () => this.body(b), 4, { kind: 'spark', speed: [150, 320], life: [150, 280], size: [1.4, 2.2], color: ['#ffffff', col], drag: 4 });
+      }
+      // 收招：交叉大斬 + 蝶群四散
+      this.addFx(t0 + IMPACT, 480, (ctx, t) => {
+        const p = this.body(b), s = this.scale;
+        this.crescent(ctx, p.x, p.y, 100 * s, 22 * s, -2.4, 1.6, t * 2 - 0.7, t * 2, col, 1 - easeIn(t));
+        this.crescent(ctx, p.x, p.y, 100 * s, 22 * s, 2.4, -1.6, t * 2 - 0.8, t * 2 - 0.1, col2, 1 - easeIn(t));
+      });
+      this.addFx(t0 + IMPACT, 450, (ctx, t) => { const p = this.body(b); this.speedLines(ctx, p.x, p.y, t, '#ffd6f0', 30); });
+      this.burst(t0 + IMPACT + 60, () => this.body(b), 30, { kind: 'butterfly', speed: [120, 300], life: [900, 1400], size: [3.5, 6], color: [col, col2, '#ffd6f0', '#ffffff'], drag: 1.6, g: -30, wob: 3 });
       this.impact(t0 + IMPACT, b, col, 1.7);
     },
 
@@ -1616,7 +1737,7 @@
   kit.layerBack = function (start, dur, fn) { this.effects.push({ start, dur, fn, back: true }); };
 
   // 近身招式：施放者會衝到對手面前
-  const MELEE = ['whip', 'whipmulti', 'crack', 'cleave'];
+  const MELEE = ['whip', 'whipmulti', 'crack', 'cleave', 'moonbreak', 'butterfly'];
   // 出招時改用的立繪動作（角色沒有這張圖時退回 attack）
   const POSE = {
     swordbeam: 'cast', swords: 'cast_up', aura: 'cast_up', thunder: 'cast', thunderbig: 'cast',

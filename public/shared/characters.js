@@ -115,16 +115,17 @@
       origin: '軒轅劍外傳 天之痕',
       stats: { hp: 990, spi: 57, spd: 62, luck: 54, def: 46 },
       look: {
-        skin: '#f6d3b3', hair: '#5a2f1b', hairStyle: 'furhat',
-        main: '#2d8a8a', sub: '#fdf3e1', trim: '#e07b39', band: '#f5efe4',
-        weapon: 'bow', aura: '#9ff2e5'
+        skin: '#f6d3b3', hair: '#1e1612', hairStyle: 'topknot',
+        main: '#c92a2a', sub: '#fdf3e1', trim: '#d4a537', band: '#f5efe4',
+        weapon: 'glaive', aura: '#ffa8d0'
       },
+      // 招式取自原作：絕技「追星破月、伏虎沖天、蒼龍蓋天、蝶靈神影」與奇術「馮虛御風」
       moves: [
-        { name: '風行', type: 'buff', color: '#2f9e44', stat: 'spd', amount: 0.8, dur: 10, refund: 35, fx: 'gale', desc: '立即回氣 35，身法 +80%（10 秒）' },
-        { name: '狼嘯', type: 'debuff', color: '#f08c00', stat: 'def', amount: -0.3, dur: 8, power: 0.7, fx: 'howl', desc: '傷害並降低對手防禦 30%' },
-        { name: '穿雲箭', type: 'atk', color: '#0c8599', power: 1.35, fx: 'arrow', desc: '一箭穿雲，直取要害' },
-        { name: '連珠箭', type: 'multi', color: '#d6336c', power: 1.4, hits: 3, fx: 'arrows', desc: '箭如連珠，三段傷害' },
-        { name: '鷹擊長空', type: 'atk', color: '#1971c2', power: 1.6, fx: 'eagle', desc: '蒼鷹撲擊，重創敵人' }
+        { name: '馮虛御風', type: 'buff', color: '#2f9e44', stat: 'spd', amount: 0.8, dur: 10, refund: 35, fx: 'gale', desc: '借風之力：立即回氣 35，身法 +80%（10 秒）' },
+        { name: '追星破月', type: 'debuff', color: '#4c6ef5', stat: 'def', amount: -0.3, dur: 8, power: 0.7, fx: 'moonbreak', desc: '內勁透體：傷害並降低對手防禦 30%' },
+        { name: '伏虎沖天', type: 'atk', color: '#f08c00', power: 1.35, fx: 'tigerrise', desc: '刀勁游地，猛虎沖天' },
+        { name: '蒼龍蓋天', type: 'multi', color: '#0c8599', power: 1.4, hits: 3, fx: 'azuredragon', desc: '長柄旋刀如蒼龍捲身，三段傷害' },
+        { name: '蝶靈神影', type: 'atk', color: '#d6336c', power: 1.6, fx: 'butterfly', desc: '身化蝶影，一瞬間八方受擊' }
       ]
     }
   ];

@@ -83,6 +83,7 @@
       case 'bow': p.armF = 1.35; p.armB = 1.1; p.wAbs = Math.PI; break;
       case 'bell': p.armF = 1.15; p.wAbs = 0; break;
       case 'whip': p.armF = 0.55; p.wOff = 1.2; break;
+      case 'glaive': p.armF = 0.6; p.wOff = 1.75; break;
       case 'talisman': p.armB = 1.4; break;
     }
     return p;
@@ -541,6 +542,29 @@
         }
         ctx.strokeStyle = '#2b1b0e'; ctx.lineWidth = 4.2; ctx.stroke();
         ctx.strokeStyle = '#e44c3c'; ctx.lineWidth = 2.4; ctx.stroke();
+        break;
+      }
+      case 'glaive': {
+        // 長柄刀：刀柄占 3/5、刀身占 2/5，握在柄的中段
+        const back = 20, front = 22, blade = 28;
+        const bx = hx - dx * back, by = hy - dy * back, gx = hx + dx * front, gy = hy + dy * front;
+        const tx = gx + dx * blade, ty = gy + dy * blade, nx = -dy, ny = dx;
+        capsule(ctx, bx, by, gx, gy, 3.2, '#2b2420');
+        // 柄尾金箍與紅穗
+        capsule(ctx, bx - dx * 2, by - dy * 2, bx + dx * 3, by + dy * 3, 3.6, look.trim);
+        ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(bx - 7, by + 9 + Math.sin(now / 220) * 2, bx - 4, by + 16);
+        ctx.strokeStyle = '#d6332a'; ctx.lineWidth = 2.4; ctx.stroke();
+        if (pose.glow > 0) { ctx.shadowColor = look.aura; ctx.shadowBlur = 14 * pose.glow; }
+        // 細長微彎的單刃刀身（眉尖刀），刀尖往刀背那側翹
+        ctx.beginPath();
+        ctx.moveTo(gx + nx * 2.2, gy + ny * 2.2);
+        ctx.quadraticCurveTo(gx + dx * blade * 0.6 + nx * 3, gy + dy * blade * 0.6 + ny * 3, tx + nx * 6, ty + ny * 6);
+        ctx.quadraticCurveTo(gx + dx * blade * 0.6 - nx * 2, gy + dy * blade * 0.6 - ny * 2, gx - nx * 2.8, gy - ny * 2.8);
+        ctx.closePath();
+        fillStroke(ctx, '#e8f1ff', '#2b3a4a', 1.5);
+        ctx.shadowBlur = 0;
+        // 護手
+        capsule(ctx, gx + nx * 5, gy + ny * 5, gx - nx * 5, gy - ny * 5, 2.6, look.trim);
         break;
       }
       case 'bell': {
