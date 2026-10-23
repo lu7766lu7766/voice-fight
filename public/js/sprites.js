@@ -120,8 +120,8 @@
         }
         p.eyes = tc < 0.42 ? 'closed' : 'normal';
         p.mouth = tc > 0.4 && tc < 0.75 ? 'open' : 'flat';
-        // 施法立繪雙手空著，提早換圖，對上飛劍在手邊出現的時間，看起來像劍剛離手
-        p.img = tc > (anim.img ? 0.16 : 0.3) && tc < 0.9 ? anim.img || 'attack' : 'idle';
+        // 施法立繪雙手空著，提早換圖，對上飛劍在手邊出現的時間，看起來像劍剛離手；近戰等衝出去才換
+        p.img = tc > (anim.img && !anim.melee ? 0.16 : 0.3) && tc < 0.9 ? anim.img || 'attack' : 'idle';
         break;
       }
       case 'hurt': {
@@ -685,7 +685,7 @@
 
   // 以圖片呈現：同一張圖靠位移、傾斜、呼吸縮放與染色做出動態
   // 缺圖時依序改用的動作
-  const POSE_FALLBACK = { cast_up: 'cast', cast: 'attack', win: 'attack' };
+  const POSE_FALLBACK = { cast_up: 'cast', cast: 'attack', slash: 'attack', win: 'attack' };
 
   function drawArt(ctx, poses, look, pose, x, y, scale, facing, opts) {
     let img = pose.img;

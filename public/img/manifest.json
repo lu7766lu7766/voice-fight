@@ -140,6 +140,50 @@
     "u": 0.25,
     "ax": 263.9
    }
+  },
+  "jingchou": {
+   "attack": {
+    "src": "img/chars/jingchou/attack.webp",
+    "w": 576,
+    "h": 555,
+    "u": 0.25,
+    "ax": 298.7
+   },
+   "cast": {
+    "src": "img/chars/jingchou/cast.webp",
+    "w": 515,
+    "h": 559,
+    "u": 0.25,
+    "ax": 275.7
+   },
+   "hurt": {
+    "src": "img/chars/jingchou/hurt.webp",
+    "w": 406,
+    "h": 558,
+    "u": 0.25,
+    "ax": 217.7
+   },
+   "idle": {
+    "src": "img/chars/jingchou/idle.webp",
+    "w": 406,
+    "h": 559,
+    "u": 0.25,
+    "ax": 217.7
+   },
+   "slash": {
+    "src": "img/chars/jingchou/slash.webp",
+    "w": 575,
+    "h": 555,
+    "u": 0.25,
+    "ax": 297.7
+   },
+   "win": {
+    "src": "img/chars/jingchou/win.webp",
+    "w": 462,
+    "h": 568,
+    "u": 0.25,
+    "ax": 217.7
+   }
   }
  },
  "fx": {},
